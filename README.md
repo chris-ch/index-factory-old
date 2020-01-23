@@ -20,14 +20,18 @@ sls dynamodb install
 
 ### start separate processes
 
-> sls dynamodb start
-> sls wsgi serve
+```bash
+sls dynamodb start
+sls wsgi serve
+```
 
 ### Test requests
 
-> curl -H "Content-Type: application/json" -X POST http://localhost:3000/users -d '{"userId": "alexdebrie1", "name": "Alex DeBrie"}'
-> curl -H "Content-Type: application/json" -X GET http://localhost:3000/users/alexdebrie1
-> curl -H "Content-Type: application/json" -X GET http://localhost:3000/users
+```bash
+curl -H "Content-Type: application/json" -X POST http://localhost:3000/users -d '{"userId": "alexdebrie1", "name": "Alex DeBrie"}'
+curl -H "Content-Type: application/json" -X GET http://localhost:3000/users/alexdebrie1
+curl -H "Content-Type: application/json" -X GET http://localhost:3000/users
+```
 
 ## Comments
 

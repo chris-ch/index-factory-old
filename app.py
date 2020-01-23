@@ -6,13 +6,13 @@ USERS_TABLE = os.environ['USERS_TABLE']
 IS_OFFLINE = os.environ.get('IS_OFFLINE')
 
 if IS_OFFLINE:
-    db = boto3.client(
+    db = boto3.resource(
         'dynamodb',
         region_name='localhost',
         endpoint_url='http://localhost:8000'
     )
 else:
-    db = boto3.client('dynamodb')
+    db = boto3.reource('dynamodb')
 
 app = Flask(__name__)
 
@@ -23,10 +23,10 @@ def hello():
 
 @app.route("/users/<string:user_id>")
 def get_user(user_id):
-    resp = db.get_item(
-        TableName=USERS_TABLE,
+    users = db.Table(USERS_TABLE)
+    resp = users.get_item(
         Key={
-            'userId': { 'S': user_id }
+            'userId': user_id
         }
     )
     item = resp.get('Item')
@@ -34,8 +34,8 @@ def get_user(user_id):
         return jsonify({'error': 'User does not exist'}), 404
 
     return jsonify({
-        'userId': item.get('userId').get('S'),
-        'name': item.get('name').get('S')
+        'userId': item.get('userId'),
+        'name': item.get('name')
     })
 
 
@@ -46,11 +46,11 @@ def create_user():
     if not user_id or not name:
         return jsonify({'error': 'Please provide userId and name'}), 400
 
-    resp = dp.put_item(
-        TableName=USERS_TABLE,
+    users = db.Table(USERS_TABLE)
+    users.put_item(
         Item={
-            'userId': {'S': user_id },
-            'name': {'S': name }
+            'userId': user_id,
+            'name': name
         }
     )
 
@@ -61,5 +61,6 @@ def create_user():
 
 @app.route("/users", methods=["GET"])
 def list_users():
-    results = db.scan(TableName=USERS_TABLE)
-    return jsonify(results)
+    users = db.Table(USERS_TABLE)
+    results = users.scan(Select='ALL_ATTRIBUTES')
+    return jsonify(results.get('Items'))
