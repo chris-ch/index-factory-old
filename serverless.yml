@@ -1,9 +1,9 @@
-service: aws-python-rest-api-with-dynamodb
+service: index-factory
 
 frameworkVersion: ">=1.1.0 <2.0.0"
 
 custom:
-  tableName: 'users-table-${self:provider.stage}'
+  tableName: 'index-factory-table-${self:provider.stage}'
   wsgi:
     app: app.app
     packRequirements: false
@@ -30,9 +30,9 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource:
-        - { "Fn::GetAtt": ["UsersDynamoDBTable", "Arn" ] }
+        - { "Fn::GetAtt": ["IndexFactoryDynamoDBTable", "Arn" ] }
   environment:
-    USERS_TABLE: ${self:custom.tableName}
+    INDEX_FACTORY_TABLE: ${self:custom.tableName}
 
 functions:
   app:
@@ -43,16 +43,16 @@ functions:
 
 resources:
   Resources:
-    UsersDynamoDBTable:
+    IndexFactoryDynamoDBTable:
       Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
           -
-            AttributeName: userId
+            AttributeName: indexCode
             AttributeType: S
         KeySchema:
           -
-            AttributeName: userId
+            AttributeName: indexCode
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1

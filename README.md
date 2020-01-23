@@ -28,9 +28,11 @@ sls wsgi serve
 ### Test requests
 
 ```bash
-curl -H "Content-Type: application/json" -X POST http://localhost:3000/users -d '{"userId": "alexdebrie1", "name": "Alex DeBrie"}'
-curl -H "Content-Type: application/json" -X GET http://localhost:3000/users/alexdebrie1
-curl -H "Content-Type: application/json" -X GET http://localhost:3000/users
+curl -H "Content-Type: application/json" -X POST http://localhost:3000/indices -d '{"indexCode": "us-small-caps", "name": "US Small Caps"}'
+curl -H "Content-Type: application/json" -X POST http://localhost:3000/indices -d '{"indexCode": "us-mid-caps", "name": "US Mid Caps"}'
+curl -H "Content-Type: application/json" -X POST http://localhost:3000/indices -d '{"indexCode": "us-large-caps", "name": "US Large Caps", "is_deleted": "1"}'
+curl -H "Content-Type: application/json" -X GET http://localhost:3000/indices/us-small-caps
+curl -H "Content-Type: application/json" -X GET http://localhost:3000/indices
 ```
 
 ## Comments
