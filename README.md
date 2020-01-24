@@ -38,3 +38,5 @@ curl -H "Content-Type: application/json" -X GET http://localhost:3000/indices
 ## Comments
 
 The python code favors the higher level boto3.resource API over boto3.client .
+
+Because DynamoDB handles numbers in a generic way they are transformed as Decimals in Python, so that some work is required before returning json.

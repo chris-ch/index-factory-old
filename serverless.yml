@@ -5,7 +5,7 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 custom:
   tableName: 'index-factory-table-${self:provider.stage}'
   wsgi:
-    app: app.app
+    app: app.handler
     packRequirements: false
   pythonRequirements:
     dockerizePip: non-linux
