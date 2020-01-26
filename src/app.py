@@ -91,10 +91,10 @@ def upload_prices(market_code):
     Daily prices for market_code in CSV format.
     """
     # check if the post request has the file part
-    if 'file' not in flask.request.files:
+    if 'prices' not in flask.request.files:
         return flask.jsonify({'error': 'Please provide a prices file'}), 400
 
-    file = flask.request.files['file']
+    file = flask.request.files['prices']
     # if user does not select file, browser also
     # submit an empty part without filename
     if file.filename == '':
