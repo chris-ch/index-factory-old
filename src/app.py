@@ -44,7 +44,7 @@ def hello():
 def make_index_partition_key(index_code):
     return 'index#' + index_code
 
-def make_index_sort_key(index_code):
+def make_index_details_sort_key(index_code):
     return 'index-details#' + index_code
 
 def make_prices_partition_key(market_code):
@@ -58,7 +58,8 @@ def get_index(index_code):
     table = db.Table(INDEX_FACTORY_TABLE)
     resp = table.get_item(
         Key={
-            'partitionKey': make_index_partition_key(index_code)
+            'partitionKey': make_index_partition_key(index_code),
+            'sortKey': make_index_details_sort_key(index_code)
         }
     )
     item = resp.get('Item')
@@ -80,7 +81,7 @@ def create_index():
     table = db.Table(INDEX_FACTORY_TABLE)
     index_data = {key: value for key, value in flask.request.json.items()}
     index_data['partitionKey'] = make_index_partition_key(index_code)
-    index_data['sortKey'] = make_index_sort_key(index_code)
+    index_data['sortKey'] = make_index_details_sort_key(index_code)
     table.put_item(Item=index_data)
 
     return flask.jsonify({
@@ -102,7 +103,7 @@ def list_prices():
     data = [{key: value for key, value in row.items() if key != 'prices'} for row in results.get('Items')]
     for row, item in zip(data, results.get('Items')):
         row['count'] = len(item['prices'])
-        
+
     return flask.jsonify(data)
 
 # compute_index(code, as_of_date)
