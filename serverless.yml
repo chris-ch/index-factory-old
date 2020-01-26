@@ -37,6 +37,7 @@ provider:
 functions:
   app:
     handler: wsgi_handler.handler
+    authorizer: aws_iam
     events:
       - http: ANY /
       - http: 'ANY {proxy+}'

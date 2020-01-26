@@ -1,4 +1,5 @@
 import os
+import csv
 import boto3
 import logging
 import flask
@@ -82,3 +83,30 @@ def list_indices():
 # compute_index(code, as_of_date)
 # upload_prices(as_of_date, file)
 # upload_price(timestamp, value)  -- realtime indices
+
+
+@handler.route('/upload-prices/<string:market_code>', methods=['POST'])
+def upload_prices(market_code):
+    """
+    Daily prices for market_code in CSV format.
+    """
+    # check if the post request has the file part
+    if 'file' not in flask.request.files:
+        return flask.jsonify({'error': 'Please provide a prices file'}), 400
+
+    file = flask.request.files['file']
+    # if user does not select file, browser also
+    # submit an empty part without filename
+    if file.filename == '':
+        return flask.jsonify({'error': 'Please provide a prices file'}), 400
+
+    content = [line.decode('utf-8').strip().split(',') for line in file.readlines()]
+    header = content[0]
+    prices = [dict(zip(header, row)) for row in content[1:]]
+    logger.info('head prices: %s', str(prices[:5]))
+    logger.info('tail prices: %s', str(prices[-5:]))
+    return flask.jsonify({
+        'marketCode': market_code,
+        'header': header,
+        'count': len(prices)
+    })
