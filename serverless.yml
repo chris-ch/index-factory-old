@@ -49,12 +49,18 @@ resources:
       Properties:
         AttributeDefinitions:
           -
-            AttributeName: indexCode
+            AttributeName: partitionKey
+            AttributeType: S
+          -
+            AttributeName: sortKey
             AttributeType: S
         KeySchema:
           -
-            AttributeName: indexCode
+            AttributeName: partitionKey
             KeyType: HASH
+          -
+            AttributeName: sortKey
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
