@@ -93,17 +93,50 @@ def create_index():
 @handler.route("/indices", methods=["GET"])
 def list_indices():
     table = db.Table(INDEX_FACTORY_TABLE)
-    results = table.scan(Select='ALL_ATTRIBUTES', FilterExpression=Key('partitionKey').begins_with('index#'))
-    return flask.jsonify(results.get('Items'))
+    results = table.scan(
+        Select='ALL_ATTRIBUTES',
+        FilterExpression=Key('partitionKey').begins_with('index#')
+        )
+    data = [{key: value for key, value in row.items()} for row in results.get('Items')]
+
+    while 'LastEvaluatedKey' in results:
+        results = table.scan(
+            Select='ALL_ATTRIBUTES',
+            FilterExpression=Key('partitionKey').begins_with('index#'),
+            ExclusiveStartKey=results['LastEvaluatedKey']
+        )
+        for row in results.get('Items'):
+            data.append({key: value for key, value in row.items()})
+
+    return flask.jsonify(data)
 
 @handler.route("/prices", methods=["GET"])
 def list_prices():
     table = db.Table(INDEX_FACTORY_TABLE)
-    results = table.scan(Select='ALL_ATTRIBUTES', FilterExpression=Key('partitionKey').begins_with('prices#'))
-    data = [{key: value for key, value in row.items() if key != 'prices'} for row in results.get('Items')]
-    for row, item in zip(data, results.get('Items')):
-        row['count'] = len(item['prices'])
+    
+    def load_results(items):
+        data = [{key: value for key, value in row.items() if key != 'prices'} for row in items]
+        for row, item in zip(data, items):
+            row['count'] = len(item['prices'])
+        
+        return data
 
+    results = table.scan(
+        Select='ALL_ATTRIBUTES',
+        FilterExpression=Key('partitionKey').begins_with('prices#') & Key('sortKey').begins_with('daily#')
+        )
+
+    data = load_results(results.get('Items'))
+
+    while 'LastEvaluatedKey' in results:
+        results = table.scan(
+            Select='ALL_ATTRIBUTES', 
+            FilterExpression=Key('partitionKey').begins_with('prices#') & Key('sortKey').begins_with('daily#'),
+            ExclusiveStartKey=results['LastEvaluatedKey']
+            )
+
+        data += load_results(results.get('Items'))
+        
     return flask.jsonify(data)
 
 # compute_index(code, as_of_date)
@@ -147,5 +180,7 @@ def upload_prices(market_code):
     return flask.jsonify({
         'marketCode': market_code,
         'header': header,
-        'count': len(prices)
+        'count': len(prices),
+        'partitionKey': make_prices_partition_key(market_code),
+        'sortKey': make_prices_sort_key(as_of_date)
     })
