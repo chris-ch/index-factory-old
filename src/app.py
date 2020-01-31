@@ -1,15 +1,16 @@
+"""
+Entry points
+"""
 import os
-import csv
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
 import logging
-import flask
 import decimal
 from datetime import date, datetime
+import boto3
+from boto3.dynamodb.conditions import Key
+import flask
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
+__LOGGER = logging.getLogger()
+__LOGGER.setLevel(logging.INFO)
 INDEX_FACTORY_TABLE = os.environ['INDEX_FACTORY_TABLE']
 IS_OFFLINE = os.environ.get('IS_OFFLINE')
 
@@ -24,7 +25,9 @@ else:
 
 
 class DecimalJSONEncoder(flask.json.JSONEncoder):
-
+    """
+    Encoder fro decimals.
+    """
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
             # Convert decimal instances to strings.
@@ -38,23 +41,41 @@ handler.json_encoder = DecimalJSONEncoder
 
 @handler.route("/")
 def hello():
+    """
+    Sample hello world.
+    """
     return "Hello World!"
 
 
 def make_index_partition_key(index_code):
+    """
+    Partition key for index.
+    """
     return 'index#' + index_code
 
 def make_index_details_sort_key(index_code):
+    """
+    Sort key for index details.
+    """
     return 'index-details#' + index_code
 
 def make_prices_partition_key(market_code):
+    """
+    Partition key for prices.
+    """
     return 'prices#' + market_code
 
 def make_prices_sort_key(as_of_date: date):
+    """
+    Sort key for prices.
+    """
     return 'daily#' + as_of_date.strftime('%Y%m%d')
 
 @handler.route("/indices/<string:index_code>")
 def get_index(index_code):
+    """
+    Getting an index.
+    """
     table = db.Table(INDEX_FACTORY_TABLE)
     resp = table.get_item(
         Key={
@@ -66,13 +87,16 @@ def get_index(index_code):
     if not item:
         return flask.jsonify({'error': 'Index does not exist'}), 404
 
-    logger.info('found item: %s' % str(item))
+    __LOGGER.info('found item: %s', str(item))
     return flask.jsonify(item)
 
 
 @handler.route("/indices", methods=["POST"])
 def create_index():
-    logger.info('receiving request: %s' % str(flask.request.json))
+    """
+    Creating an index.
+    """
+    __LOGGER.info('receiving request: %s', str(flask.request.json))
     index_code = flask.request.json.get('indexCode')
     name = flask.request.json.get('name')
     if not index_code or not name:
@@ -92,6 +116,9 @@ def create_index():
 
 @handler.route("/indices", methods=["GET"])
 def list_indices():
+    """
+    Listing indices.
+    """
     table = db.Table(INDEX_FACTORY_TABLE)
     results = table.scan(
         Select='ALL_ATTRIBUTES',
@@ -112,18 +139,23 @@ def list_indices():
 
 @handler.route("/prices", methods=["GET"])
 def list_prices():
+    """
+    Listing prices.
+    """
     table = db.Table(INDEX_FACTORY_TABLE)
     
     def load_results(items):
         data = [{key: value for key, value in row.items() if key != 'prices'} for row in items]
         for row, item in zip(data, items):
-            row['count'] = len(item['prices'])
-        
+            row['count'] = len(item['prices'])        
         return data
 
     results = table.scan(
         Select='ALL_ATTRIBUTES',
-        FilterExpression=Key('partitionKey').begins_with('prices#') & Key('sortKey').begins_with('daily#')
+        FilterExpression=(
+            Key('partitionKey').begins_with('prices#') 
+            & Key('sortKey').begins_with('daily#')
+            )
         )
 
     data = load_results(results.get('Items'))
@@ -131,12 +163,15 @@ def list_prices():
     while 'LastEvaluatedKey' in results:
         results = table.scan(
             Select='ALL_ATTRIBUTES', 
-            FilterExpression=Key('partitionKey').begins_with('prices#') & Key('sortKey').begins_with('daily#'),
+            FilterExpression=(
+                Key('partitionKey').begins_with('prices#') 
+                & Key('sortKey').begins_with('daily#')
+                ),
             ExclusiveStartKey=results['LastEvaluatedKey']
             )
 
         data += load_results(results.get('Items'))
-        
+
     return flask.jsonify(data)
 
 # compute_index(code, as_of_date)
@@ -167,8 +202,8 @@ def upload_prices(market_code):
             'count': 0
             })
 
-    logger.info('head prices: %s', str(prices[:5]))
-    logger.info('tail prices: %s', str(prices[-5:]))
+    __LOGGER.info('head prices: %s', str(prices[:5]))
+    __LOGGER.info('tail prices: %s', str(prices[-5:]))
     table = db.Table(INDEX_FACTORY_TABLE)
     as_of_date = datetime.strptime(prices[0]['Date'], '%d-%b-%Y')
     prices_data = {
