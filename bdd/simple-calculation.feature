@@ -12,7 +12,7 @@ Feature: Index Factory calculation
      Then the index value is updated
      And we upload a CSV file with daily prices as of 2020-03-02
      Then the index value is updated
-     And we upload a CSV file with daily dividends as of 2020-03-04
+     And we upload a CSV file with dividends as of 2020-03-04
      And we upload a CSV file with daily prices as of 2020-03-31
      Then the index value is updated
      When we upload a CSV file with number of shares as of 2020-03-31

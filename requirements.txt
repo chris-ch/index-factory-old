@@ -19,3 +19,6 @@ typed-ast==1.4.1
 urllib3==1.25.7
 Werkzeug==0.16.0
 wrapt==1.11.2
+behave==1.2.6
+pytest==5.3.5
+requests==2.22.0
