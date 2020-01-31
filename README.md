@@ -6,12 +6,22 @@ Financial Indices Factory running on AWS
 
 ### install
 
+First install serverless globally with `npm install -g serverless`
+
+pipThen:
+
 ```bash
 virtualenv --python=python3 venv
 . venv/bin/activate
 pip install -r requirements.txt
 npm install --save-dev serverless-dynamodb-local serverless-wsgi serverless-python-requirements serverless-offline
 sls dynamodb install
+```
+
+## Running BDD tests
+
+```bash
+behave --logging-level=INFO bdd
 ```
 
 ### start
@@ -22,7 +32,7 @@ sls dynamodb install
 
 ```bash
 sls dynamodb start
-sls wsgi serve
+sls wsgi serve  
 ```
 
 ### Test requests

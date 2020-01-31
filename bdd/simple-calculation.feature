@@ -1,3 +1,5 @@
+@logging
+@no_capture
 Feature: Index Factory calculation
 
   Scenario: Performs an index calculation with a straightforward methodology
