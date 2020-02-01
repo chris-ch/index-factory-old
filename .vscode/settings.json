@@ -1,0 +1,30 @@
+{
+    "python.pythonPath": "venv/bin/python",
+    "python.linting.pylintArgs": ["src"],
+    "python.linting.enabled": false,
+    "python.testing.unittestEnabled": false,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.pytestEnabled": true,
+    "python.testing.nosetestsEnabled": false,
+    "files.exclude": {
+        "**/*.pyc": {"when": "$(basename).py"}, 
+        "**/__pycache__": true,
+        "venv": true,
+        "node_modules": true,
+        ".idea": true,
+        ".pytest_cache": true,
+        ".dynamodb": true,
+        "package-lock.json": true,
+        "package.json": true
+    },
+    "python.testing.pytestArgs": [
+        "tests"
+    ]
+}

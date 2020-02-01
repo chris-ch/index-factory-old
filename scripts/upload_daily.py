@@ -1,7 +1,7 @@
 import requests
 import os
 
-if __name__ == '__main__':
+def main():
     url = "http://localhost:3000/upload-prices/nyse"
     test_prices_path = 'nyse-2018'
     for filename in os.listdir(test_prices_path):
@@ -12,3 +12,6 @@ if __name__ == '__main__':
         prices = open(prices_file, 'rb')
         response = requests.request("POST", url, files={'prices': prices})
         print(response.text)
+
+if __name__ == '__main__':
+    main()
