@@ -1,20 +1,21 @@
 import requests
 import os
-import sys
 import logging
+import sys
 
 
 def main():
-    url = "http://localhost:3000/upload-prices/nyse"
-    test_prices_path = 'nyse-2018'
-    for filename in os.listdir(test_prices_path):
-        if not filename.endswith('.csv'):
-            continue
-
-        prices_file = os.path.abspath(os.sep.join([test_prices_path, filename]))
-        prices = open(prices_file, 'rb')
-        response = requests.request("POST", url, files={'prices': prices})
-        print(response.text)
+    market = 'US'
+    year = '2019'
+    month = '12'
+    day = '31'
+    url = "http://localhost:3000/upload-nosh/{}".format(market)
+    test_nosh_path = 'resources/fake-data'
+    filename = '{}_NOSH_{}{}{}.csv'.format(market, year, month, day)
+    nosh_file = os.path.abspath(os.sep.join([test_nosh_path, filename]))
+    nosh = open(nosh_file, 'r')
+    response = requests.request("POST", url, files={'numberOfShares': nosh})
+    logging.info('number of shares upload response: %s', response.text)
 
 
 if __name__ == '__main__':

@@ -2,8 +2,8 @@ import logging
 import json
 import os
 import sys
-from datetime import date
 import requests
+
 
 def main():
     index_data = {
@@ -17,6 +17,7 @@ def main():
     logging.info('response: %s', str(response.text))
     result = json.loads(response.text)
     assert result['indexCode'] == 'us-equity'
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(name)s:%(levelname)s:%(message)s')
