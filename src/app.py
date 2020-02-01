@@ -99,8 +99,9 @@ def create_index():
     __LOGGER.info('receiving request: %s', str(flask.request.json))
     index_code = flask.request.json.get('indexCode')
     name = flask.request.json.get('name')
-    if not index_code or not name:
-        return flask.jsonify({'error': 'Please provide indexCode and name'}), 400
+    start_date = flask.request.json.get('startDate')
+    if not index_code or not name or not start_date:
+        return flask.jsonify({'error': 'Please provide indexCode, name and startDate'}), 400
 
     table = db.Table(INDEX_FACTORY_TABLE)
     index_data = {key: value for key, value in flask.request.json.items()}
