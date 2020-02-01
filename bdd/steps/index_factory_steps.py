@@ -49,8 +49,8 @@ def step_impl(context, market, year, month, day):
         logging.info('number of shares upload response: %s', str(json_response))
         assert json_response['count'] > 0
 
-@then('the {index_code} index value is updated')
-def step_impl(context, index_code):
+@then('the {index_code} index value is {index_value:d}')
+def step_impl(context, index_code, index_value):
     assert False
 
 @when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
