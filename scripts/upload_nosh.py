@@ -2,6 +2,7 @@ import requests
 import os
 import logging
 import sys
+import json
 
 
 def main():
@@ -11,12 +12,14 @@ def main():
     day = '31'
     url = "http://localhost:3000/upload-nosh/{}".format(market)
     test_nosh_path = 'resources/fake-data'
+    logging.info('url: %s', url)
     filename = '{}_NOSH_{}{}{}.csv'.format(market, year, month, day)
     nosh_file = os.path.abspath(os.sep.join([test_nosh_path, filename]))
-    nosh = open(nosh_file, 'r')
-    response = requests.request("POST", url, files={'numberOfShares': nosh})
-    logging.info('number of shares upload response: %s', response.text)
-
+    with open(nosh_file, 'rb') as nosh:
+        response = requests.request("POST", url, files={'numberOfShares': nosh})
+        json_response = json.loads(response.text)
+        logging.info('number of shares upload response: %s', str(json_response))
+        assert json_response['count'] == 5
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(name)s:%(levelname)s:%(message)s')

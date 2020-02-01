@@ -29,26 +29,30 @@ def step_impl(context, market, year, month, day):
     test_prices_path = 'resources/fake-data'
     filename = '{}_{}{}{}.csv'.format(market, year, month, day)
     prices_file = os.path.abspath(os.sep.join([test_prices_path, filename]))
-    prices = open(prices_file, 'r')
-    response = requests.request("POST", url, files={'prices': prices})
-    logging.info('prices upload repsonse: %s', response.text)
-    assert response.text is None
+    with open(prices_file, 'rb') as prices:
+        response = requests.request("POST", url, files={'prices': prices})
+        json_response = json.loads(response.text)
+        logging.info('prices upload response: %s', str(json_response))
+        assert json_response['partitionKey'] == 'eod-prices#{}'.format(market)
+        assert json_response['sortKey'] == 'eod-prices#{}{}{}}'.format(year, month, day)
 
 @when('we upload a CSV file with number of shares as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
     url = "http://localhost:3000/upload-nosh/{}".format(market)
     test_nosh_path = 'resources/fake-data'
+    logging.info('url: %s', url)
     filename = '{}_NOSH_{}{}{}.csv'.format(market, year, month, day)
     nosh_file = os.path.abspath(os.sep.join([test_nosh_path, filename]))
-    nosh = open(nosh_file, 'r')
-    response = requests.request("POST", url, files={'numberOfShares': nosh})
-    logging.info('number of shares upload repsonse: %s', response.text)
-    assert response.text is None
-
-@when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
-def step_impl(context, market, year, month, day):
-    assert False
+    with open(nosh_file, 'rb') as nosh:
+        response = requests.request("POST", url, files={'numberOfShares': nosh})
+        json_response = json.loads(response.text)
+        logging.info('number of shares upload response: %s', str(json_response))
+        assert json_response['count'] > 0
 
 @then('the {index_code} index value is updated')
 def step_impl(context, index_code):
+    assert False
+
+@when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
+def step_impl(context, market, year, month, day):
     assert False

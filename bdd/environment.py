@@ -7,7 +7,10 @@ _child = None
 def before_all(context):
     context.config.setup_logging()
 
-def before_feature(context, feature):
+def Xbefore_feature(context, feature):
+    """
+    TODO make it work for number of shares upload... In the meantime server launches manually
+    """
     global _child
     logging.info('serverless offline starting...')
     _child = pexpect.spawn('sls offline start', encoding='utf-8')
@@ -15,7 +18,7 @@ def before_feature(context, feature):
     _child.expect('Offline \[HTTP\] listening on .*')
     logging.info('serverless offline started successfully')
 
-def after_feature(context, feature):
+def Xafter_feature(context, feature):
     if _child:
         _child.kill(15)
         logging.info('serverless offline successfully stopped')
