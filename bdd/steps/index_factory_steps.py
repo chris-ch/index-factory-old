@@ -34,7 +34,7 @@ def step_impl(context, market, year, month, day):
         json_response = json.loads(response.text)
         logging.info('prices upload response: %s', str(json_response))
         assert json_response['partitionKey'] == 'eod-prices#{}'.format(market)
-        assert json_response['sortKey'] == 'eod-prices#{}{}{}}'.format(year, month, day)
+        assert json_response['sortKey'] == 'eod-prices#{}{}{}'.format(year, month, day)
 
 @when('we upload a CSV file with number of shares as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
@@ -49,7 +49,7 @@ def step_impl(context, market, year, month, day):
         logging.info('number of shares upload response: %s', str(json_response))
         assert json_response['count'] > 0
 
-@then('the {index_code} index value is {index_value:d}')
+@then('the {index_code} index value is {index_value}')
 def step_impl(context, index_code, index_value):
     assert False
 

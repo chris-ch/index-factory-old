@@ -13,10 +13,10 @@ def Xbefore_feature(context, feature):
     """
     global _child
     logging.info('serverless offline starting...')
-    _child = pexpect.spawn('sls offline start', encoding='utf-8')
-    _child.logfile = sys.stdout
-    _child.expect('Offline \[HTTP\] listening on .*')
-    logging.info('serverless offline started successfully')
+    with open('pexpect.log', 'wb') as logs:
+        _child = pexpect.spawn('sls offline start', logfile=logs)
+        _child.expect('Offline \[HTTP\] listening on .*')
+        logging.info('serverless offline started successfully')
 
 def Xafter_feature(context, feature):
     if _child:
