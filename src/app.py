@@ -119,7 +119,11 @@ def get_market(market_code):
             Select='ALL_ATTRIBUTES',
             FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains('@{}@'.format(market_code))
             )
-    data = [{key: value for key, value in row.items()} for row in results.get('Items')]
+    data = [{
+        'indexCode': row['indexCode'],
+        'name': row['name'],
+        'partitionKey': row['partitionKey']
+        } for row in results.get('Items')]
 
     while 'LastEvaluatedKey' in results:
         results = table.scan(
@@ -128,7 +132,11 @@ def get_market(market_code):
             ExclusiveStartKey=results['LastEvaluatedKey']
         )
         for row in results.get('Items'):
-            data.append({key: value for key, value in row.items()})
+            data.append({
+                'indexCode': row['indexCode'],
+                'name': row['name'],
+                'partitionKey': row['partitionKey']
+                })
 
     logging.info('retrieved indices for market %s: %s', market_code, data)
     return flask.jsonify({'market': market_code, 'indices': data})

@@ -58,9 +58,6 @@ def step_impl(context, market, indices):
     logging.info('indices for market %s response: %s', market, str(json_response))
     assert len(json_response['indices']) == len(indices.split(','))
     for item in json_response['indices']:
-        assert market in item['markets']
-
-    for item in json_response['indices']:
         assert item['indexCode'] in indices.split(',')
 
 @then('the {index_code} index value is {index_value}')
