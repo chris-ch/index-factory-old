@@ -6,7 +6,7 @@ import logging
 import decimal
 from datetime import date, datetime
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr, BeginsWith
 import flask
 
 __LOGGER = logging.getLogger()
@@ -54,11 +54,11 @@ def make_index_partition_key(index_code):
     return 'index#' + index_code
 
 
-def make_index_details_sort_key(index_code):
+def make_index_details_sort_key(index_code, markets):
     """
     Sort key for index details.
     """
-    return 'index-details#' + index_code
+    return 'index-details#{}#{}'.format(index_code, '@' + '@'.join(markets) + '@')
 
 
 def make_prices_partition_key(market_code):
@@ -98,7 +98,7 @@ def get_index(index_code):
     resp = table.get_item(
         Key={
             'partitionKey': make_index_partition_key(index_code),
-            'sortKey': make_index_details_sort_key(index_code)
+            'sortKey': BeginsWith(make_index_details_sort_key(index_code, ''))
         }
     )
     item = resp.get('Item')
@@ -107,6 +107,31 @@ def get_index(index_code):
 
     __LOGGER.info('found item: %s', str(item))
     return flask.jsonify(item)
+
+
+@handler.route("/markets/<string:market_code>")
+def get_market(market_code):
+    """
+    Getting market details.
+    """
+    table = db.Table(INDEX_FACTORY_TABLE)
+    results = table.scan(
+            Select='ALL_ATTRIBUTES',
+            FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains('@{}@'.format(market_code))
+            )
+    data = [{key: value for key, value in row.items()} for row in results.get('Items')]
+
+    while 'LastEvaluatedKey' in results:
+        results = table.scan(
+            Select='ALL_ATTRIBUTES',
+            FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains('@{}@'.format(market_code)),
+            ExclusiveStartKey=results['LastEvaluatedKey']
+        )
+        for row in results.get('Items'):
+            data.append({key: value for key, value in row.items()})
+
+    logging.info('retrieved market details %s', data)
+    return flask.jsonify(data)
 
 
 @handler.route("/indices", methods=["POST"])
@@ -118,13 +143,14 @@ def create_index():
     index_code = flask.request.json.get('indexCode')
     name = flask.request.json.get('name')
     start_date = flask.request.json.get('startDate')
-    if not index_code or not name or not start_date:
-        return flask.jsonify({'error': 'Please provide indexCode, name and startDate'}), 400
+    markets = flask.request.json.get('markets')
+    if not index_code or not name or not start_date or not markets:
+        return flask.jsonify({'error': 'Please provide indexCode, name, startDate and markets'}), 400
 
     table = db.Table(INDEX_FACTORY_TABLE)
     index_data = {key: value for key, value in flask.request.json.items()}
     index_data['partitionKey'] = make_index_partition_key(index_code)
-    index_data['sortKey'] = make_index_details_sort_key(index_code)
+    index_data['sortKey'] = make_index_details_sort_key(index_code, markets)
     table.put_item(Item=index_data)
 
     return flask.jsonify({
@@ -240,7 +266,7 @@ def upload_prices(market_code):
 
 
 @handler.route('/upload-nosh/<string:market_code>', methods=['POST'])
-def upload_nosh(market_code):
+def upload_nosh(market_code: str) -> str:
     """
     Number of shares for market_code in CSV format.
     """
@@ -281,3 +307,9 @@ def upload_nosh(market_code):
         'partitionKey': make_nosh_partition_key(market_code),
         'sortKey': make_nosh_sort_key(as_of_date)
     })
+
+
+def compute_indices(as_of_date: str, market: str) -> str:
+    # retrieving indices depending on market
+    # for each index --> updating value as of date
+    return ''
