@@ -130,8 +130,8 @@ def get_market(market_code):
         for row in results.get('Items'):
             data.append({key: value for key, value in row.items()})
 
-    logging.info('retrieved market details %s', data)
-    return flask.jsonify(data)
+    logging.info('retrieved indices for market %s: %s', market_code, data)
+    return flask.jsonify({'market': market_code, 'indices': data})
 
 
 @handler.route("/indices", methods=["POST"])
