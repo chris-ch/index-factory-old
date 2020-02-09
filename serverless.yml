@@ -4,16 +4,45 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 
 custom:
   tableName: 'index-factory-table-${self:provider.stage}'
+
   wsgi:
     app: src/app.handler
     packRequirements: false
+
   pythonRequirements:
     dockerizePip: non-linux
+
   dynamodb:
     stages:
       - local
     start:
-      migrate: true
+      port: 8001
+      migration: true
+
+  s3:
+    host: localhost
+    port: 8000
+    directory: /tmp
+
+#  dynamodbStream:
+#    region: us-east-1
+#    apiVersion: '20200101'
+#    host: 127.0.0.1
+#    port: 8000
+#    pollForever: true
+#    streams:
+#      - table: index-factory-table-${self:provider.stage}
+#        functions:
+#          - computeIndex
+
+#  serverless-offline-dynamodb-streams:
+#    apiVersion: '2013-12-02'
+#    endpoint: http://0.0.0.0:8000
+#    region: us-east-1
+#    accessKeyId: root
+#    secretAccessKey: root
+#    skipCacheInvalidation: false
+#    readInterval: 500
 
 provider:
   name: aws
@@ -29,8 +58,11 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:DescribeTable
+        - dynamodb:ListStreams
       Resource:
-        - { "Fn::GetAtt": ["IndexFactoryDynamoDBTable", "Arn" ] }
+        - Fn::GetAtt: [IndexFactoryDynamoDBTable, Arn]
+
   environment:
     INDEX_FACTORY_TABLE: ${self:custom.tableName}
 
@@ -47,6 +79,19 @@ functions:
               Ref: ApiGatewayAuthorizer
       - http: 'ANY {proxy+}'
 
+  computeIndex:
+    handler: lambdas.compute_indices
+    events:
+      - s3: local-bucket
+        event: s3:*
+      - stream:
+        batchSize: 1
+        startingPosition: LATEST
+        enabled: true
+        type: dynamodb
+        arn:
+          Fn::GetAtt: [IndexFactoryDynamoDBTable, StreamArn]
+
 resources:
   ApiGatewayAuthorizer:
     DependsOn:
@@ -62,7 +107,7 @@ resources:
         - Fn::GetAtt: [CognitoUserPool, Arn]
 
   CognitoUserPool:
-    Type: "AWS::Cognito::UserPool"
+    Type: AWS::Cognito::UserPool
     Properties:
       MfaConfiguration: OFF
       UserPoolName: my-user-pool
@@ -76,8 +121,12 @@ resources:
           RequireSymbols: False
           RequireUppercase: True
   Resources:
+    IndexFactoryS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: local-bucket
     CognitoUserPoolClient:
-      Type: "AWS::Cognito::UserPoolClient"
+      Type: AWS::Cognito::UserPoolClient
       Properties:
         ClientName: my-user-pool-client
         GenerateSecret: False
@@ -105,10 +154,13 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:custom.tableName}
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
 
+# - serverless-offline-dynamodb-streams
 plugins:
   - serverless-dynamodb-local
+  - serverless-s3-local
   - serverless-python-requirements
   - serverless-wsgi
-  - serverless-offline  # should be last in list
-
+  - serverless-offline

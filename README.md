@@ -14,8 +14,12 @@ pipThen:
 virtualenv --python=python3 venv
 . venv/bin/activate
 pip install -r requirements.txt
+pip install --upgrade awscli
 npm install --save-dev serverless-dynamodb-local serverless-wsgi serverless-python-requirements serverless-offline
 sls dynamodb install
+serverless plugin install --name serverless-offline
+serverless plugin install --name serverless-s3-local
+serverless plugin install --name serverless-dynamodb-local
 ```
 
 ## Running BDD tests
@@ -26,7 +30,7 @@ behave --logging-level=INFO bdd
 
 ### start
 
-> sls offline start  # make sure stage is declared in serverless.yml custom section
+> SLS_DEBUG=DEBUG sls offline start  # make sure stage is declared in serverless.yml custom section
 
 ### start separate processes
 

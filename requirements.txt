@@ -1,6 +1,6 @@
 astroid==2.3.3
 boto3==1.11.6
-botocore==1.14.6
+botocore==1.14.13
 Click==7.0
 docutils==0.15.2
 Flask==1.1.1
