@@ -16,11 +16,12 @@ custom:
     stages:
       - local
     start:
+      host: 127.0.0.1
       port: 8001
       migration: true
 
   s3:
-    host: localhost
+    host: 127.0.0.1
     port: 8000
     directory: /tmp
 
@@ -80,7 +81,7 @@ functions:
       - http: 'ANY {proxy+}'
 
   computeIndex:
-    handler: lambdas.compute_indices
+    handler: src/app.compute_indices
     events:
       - s3: local-bucket
         event: s3:*

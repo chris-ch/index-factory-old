@@ -328,7 +328,10 @@ def compute_indices(event, context) -> str:
     """
     This function is triggered everytime a new price file is available.
     """
-    logging.error('******accessing function*******')
+    logging.info('****** function triggered with s3 *******')
+    logging.info('event: %s', str(event))
+    logging.info('context: %s', str(context))
+    return 0
     as_of_date = event.get('as_of_date')
     market = event.get('market_code')
     # retrieving indices depending on market
