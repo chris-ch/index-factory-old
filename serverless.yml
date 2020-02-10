@@ -53,14 +53,7 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-        - dynamodb:DescribeTable
-        - dynamodb:ListStreams
+        - dynamodb:*
       Resource:
         - Fn::GetAtt: [IndexFactoryDynamoDBTable, Arn]
 
@@ -121,11 +114,14 @@ resources:
           RequireNumbers: True
           RequireSymbols: False
           RequireUppercase: True
+
   Resources:
+
     IndexFactoryS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: local-bucket
+
     CognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
@@ -137,6 +133,7 @@ resources:
     IndexFactoryDynamoDBTable:
       Type: AWS::DynamoDB::Table
       Properties:
+        TableName: ${self:custom.tableName}
         AttributeDefinitions:
           -
             AttributeName: partitionKey
@@ -154,7 +151,6 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:custom.tableName}
         StreamSpecification:
           StreamViewType: NEW_IMAGE
 
