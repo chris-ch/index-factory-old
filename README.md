@@ -60,5 +60,5 @@ Because DynamoDB handles numbers in a generic way they are transformed as Decima
 The endpoint needs to be 127.0.0.1 !!! localhost is failing !!!
 
 ```
-AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint http://127.0.0.1:8000 s3api put-object --bucket local-bucket --key  1234.txt --body docs/demo-s3/1234.txt
+AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint http://127.0.0.1:8001 s3api put-object --bucket local-bucket --key  1234.txt --body docs/demo-s3/1234.txt
 ```
