@@ -5,6 +5,8 @@ import os
 import logging
 import decimal
 from datetime import date, datetime
+from typing import Iterable, Dict
+
 import boto3
 from boto3.dynamodb.conditions import Key, Attr, BeginsWith
 import flask
@@ -110,34 +112,11 @@ def get_index(index_code):
 
 
 @handler.route("/markets/<string:market_code>")
-def get_market(market_code):
+def get_market_indices(market_code: str) -> str:
     """
     Getting market details.
     """
-    table = db.Table(INDEX_FACTORY_TABLE)
-    results = table.scan(
-            Select='ALL_ATTRIBUTES',
-            FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains('@{}@'.format(market_code))
-            )
-    data = [{
-        'indexCode': row['indexCode'],
-        'name': row['name'],
-        'partitionKey': row['partitionKey']
-        } for row in results.get('Items')]
-
-    while 'LastEvaluatedKey' in results:
-        results = table.scan(
-            Select='ALL_ATTRIBUTES',
-            FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains('@{}@'.format(market_code)),
-            ExclusiveStartKey=results['LastEvaluatedKey']
-        )
-        for row in results.get('Items'):
-            data.append({
-                'indexCode': row['indexCode'],
-                'name': row['name'],
-                'partitionKey': row['partitionKey']
-                })
-
+    data = load_market_indices(market_code)
     logging.info('retrieved indices for market %s: %s', market_code, data)
     return flask.jsonify({'market': market_code, 'indices': data})
 
@@ -316,8 +295,51 @@ def upload_nosh(market_code: str) -> str:
         'sortKey': make_nosh_sort_key(as_of_date)
     })
 
+def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
+    table = db.Table(INDEX_FACTORY_TABLE)
+    results = table.scan(
+        Select='ALL_ATTRIBUTES',
+        FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains(
+            '@{}@'.format(market_code))
+    )
+    data = [{
+        'indexCode': row['indexCode'],
+        'name': row['name'],
+        'partitionKey': row['partitionKey']
+    } for row in results.get('Items')]
+    while 'LastEvaluatedKey' in results:
+        results = table.scan(
+            Select='ALL_ATTRIBUTES',
+            FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains(
+                '@{}@'.format(market_code)),
+            ExclusiveStartKey=results['LastEvaluatedKey']
+        )
+        for row in results.get('Items'):
+            data.append({
+                'indexCode': row['indexCode'],
+                'name': row['name'],
+                'partitionKey': row['partitionKey']
+            })
+    return data
 
-def compute_indices(as_of_date: str, market: str) -> str:
+def compute_indices(event, context) -> str:
+    """
+    This function is triggered everytime a new price file is available.
+    """
+    logging.info('****** function triggered with s3 *******')
+    logging.info('event: %s', str(event))
+    logging.info('context: %s', str(context))
+    return 0
+    as_of_date = event.get('as_of_date')
+    market = event.get('market_code')
     # retrieving indices depending on market
-    # for each index --> updating value as of date
-    return ''
+    indices = load_market_indices(market)
+    for index_code in indices:
+        logging.error('updating index %s as of %s', index_code, as_of_date)
+        # loading number of shares as of date
+        # loading prices if not available in context
+        # screening according to index rules
+        # computing weights according to index rules
+        # computing index level
+        
+    return flask.jsonify({'updated_indices': {}})

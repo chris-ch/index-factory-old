@@ -132,3 +132,5 @@ dmypy.json
 node_modules
 
 .idea
+.serverless-wsgi
+package.json
