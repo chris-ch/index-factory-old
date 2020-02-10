@@ -17,12 +17,12 @@ custom:
       - local
     start:
       host: 127.0.0.1
-      port: 8001
-      migration: true
+      port: 8000
+      migrate: true
 
   s3:
     host: 127.0.0.1
-    port: 8000
+    port: 8001
     directory: /tmp
 
 #  dynamodbStream:
@@ -135,7 +135,7 @@ resources:
           Ref: CognitoUserPool
 
     IndexFactoryDynamoDBTable:
-      Type: 'AWS::DynamoDB::Table'
+      Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
           -
