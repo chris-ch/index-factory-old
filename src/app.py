@@ -324,11 +324,11 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
     return data
 
 
-def compute_indices(event, context) -> str:
+def handle_daily_prices(event, context) -> str:
     """
     This function is triggered everytime a new price file is available.
     """
-    logging.info('****** function triggered with s3 *******')
+    logging.info('****** daily prices triggered with s3 *******')
     logging.info('event: %s', str(event))
     logging.info('context: %s', str(context))
     return 0
@@ -345,3 +345,22 @@ def compute_indices(event, context) -> str:
         # computing index level
         
     return flask.jsonify({'updated_indices': {}})
+
+def handle_number_of_shares(event, context) -> str:
+    """
+    This function is triggered everytime a new number of shares file is available.
+    """
+    logging.info('****** number of shares triggered with s3 *******')
+    logging.info('event: %s', str(event))
+    logging.info('context: %s', str(context))
+    return 0
+
+
+def handle_dividends(event, context) -> str:
+    """
+    This function is triggered everytime a new dividend file is available.
+    """
+    logging.info('****** dividends triggered with s3 *******')
+    logging.info('event: %s', str(event))
+    logging.info('context: %s', str(context))
+    return 0

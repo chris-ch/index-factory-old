@@ -53,18 +53,23 @@ functions:
               Ref: ApiGatewayAuthorizer
       - http: 'ANY {proxy+}'
 
-  computeIndex:
-    handler: src/app.compute_indices
+  handleDailyPrices:
+    handler: src/app.handle_daily_prices
     events:
-      - s3: local-bucket
+      - s3: index-factory-daily-prices-bucket
         event: s3:*
-      - stream:
-        enabled: true
-        type: dynamodb
-        batchSize: 1
-        startingPosition: TRIM_HORIZON
-        arn:
-          Fn::GetAtt: [IndexFactoryDynamoDBTable, StreamArn]
+
+  handleNumberOfShares:
+    handler: src/app.handle_number_of_shares
+    events:
+      - s3: index-factory-number-of-shares-bucket
+        event: s3:*
+
+  handleDividends:
+    handler: src/app.handle_dividends
+    events:
+      - s3: index-factory-dividends-bucket
+        event: s3:*
 
 resources:
   ApiGatewayAuthorizer:
@@ -97,10 +102,20 @@ resources:
 
   Resources:
 
-    IndexFactoryS3Bucket:
+    IndexFactoryDailyPricesS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: index-factory-daily-prices
+        BucketName: index-factory-daily-prices-bucket
+
+    IndexFactoryNumberOfSharesS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: index-factory-number-of-shares-bucket
+
+    IndexFactoryDividendsS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: index-factory-dividends-bucket
 
     CognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
