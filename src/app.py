@@ -329,9 +329,14 @@ def handle_daily_prices(event, context) -> str:
     This function is triggered everytime a new price file is available.
     """
     logging.info('****** daily prices triggered with s3 *******')
-    logging.info('event: %s', str(event))
-    logging.info('context: %s', str(context))
+    for record in event['Records']:
+        logging.info('record: %s', str(record))
+        logging.info('processing file %s', record['s3']['object']['key'])
+        # loading file from s3
+        # parsing file ?
+
     return 0
+    
     as_of_date = event.get('as_of_date')
     market = event.get('market_code')
     # retrieving indices depending on market

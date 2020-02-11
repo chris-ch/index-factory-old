@@ -57,19 +57,19 @@ functions:
     handler: src/app.handle_daily_prices
     events:
       - s3: index-factory-daily-prices-bucket
-        event: s3:*
+        event: s3:ObjectCreated:Put
 
   handleNumberOfShares:
     handler: src/app.handle_number_of_shares
     events:
       - s3: index-factory-number-of-shares-bucket
-        event: s3:*
+        event: s3:ObjectCreated:Put
 
   handleDividends:
     handler: src/app.handle_dividends
     events:
       - s3: index-factory-dividends-bucket
-        event: s3:*
+        event: s3:ObjectCreated:Put
 
 resources:
   ApiGatewayAuthorizer:

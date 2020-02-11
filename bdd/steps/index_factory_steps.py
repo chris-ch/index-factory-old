@@ -30,39 +30,40 @@ def step_impl(context, index_name, index_code, year, month, day, markets):
 @when('we upload a CSV file with daily prices as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
 
-    os.environ['AWS_ACCESS_KEY_ID'] = 'S3RVER'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'S3RVER'
     args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
-            's3api', 'put-object', '--bucket', 'index-factory-daily-prices-bucket',
-            '--key', '"US/2020/01/US_20200131.csv"', '--body', 'resources/fake-data/US_20200131.csv']
+            's3api', 'put-object', 
+            '--bucket', 'index-factory-daily-prices-bucket',
+            '--key', '"{market}/{year}/{month}/{market}_{year}{month}{day}.csv"'.format(market=market, year=year, month=month, day=day),
+            '--body', 'resources/fake-data/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
     status = clidriver.create_clidriver().main(args)
     assert status == 0
-    return
-    url = "http://localhost:3000/upload-prices/{}".format(market)
-    test_prices_path = 'resources/fake-data'
-    filename = '{}_{}{}{}.csv'.format(market, year, month, day)
-    prices_file = os.path.abspath(os.sep.join([test_prices_path, filename]))
-    with open(prices_file, 'rb') as prices:
-        response = requests.request('POST', url, files={'prices': prices})
-        json_response = json.loads(response.text)
-        logging.info('prices upload response: %s', str(json_response))
-        assert json_response['partitionKey'] == 'eod-prices#{}'.format(market)
-        assert json_response['sortKey'] == 'eod-prices#{}{}{}'.format(year, month, day)
 
 
 @when('we upload a CSV file with number of shares as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
-    url = "http://localhost:3000/upload-nosh/{}".format(market)
-    test_nosh_path = 'resources/fake-data'
-    logging.info('url: %s', url)
-    filename = '{}_NOSH_{}{}{}.csv'.format(market, year, month, day)
-    nosh_file = os.path.abspath(os.sep.join([test_nosh_path, filename]))
-    with open(nosh_file, 'rb') as nosh:
-        response = requests.request('POST', url, files={'numberOfShares': nosh})
-        json_response = json.loads(response.text)
-        logging.info('number of shares upload response: %s', str(json_response))
-        assert json_response['count'] > 0
+
+    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
+            's3api', 'put-object', 
+            '--bucket', 'index-factory-number-of-shares-bucket',
+            '--key', '"{market}/{year}/{month}/{market}_{year}{month}{day}.csv"'.format(market=market, year=year, month=month, day=day),
+            '--body', 'resources/fake-data/{market}_NOSH_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
+
+    status = clidriver.create_clidriver().main(args)
+    assert status == 0
+
+
+@when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
+def step_impl(context, market, year, month, day):
+    
+    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
+            's3api', 'put-object', 
+            '--bucket', 'index-factory-dividends-bucket',
+            '--key', '"{market}/{year}/{month}/{market}_{year}{month}{day}.csv"'.format(market=market, year=year, month=month, day=day),
+            '--body', 'resources/fake-data/{market}_DIVIDENDS_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
+
+    status = clidriver.create_clidriver().main(args)
+    assert status == 0
 
 
 @then('querying indices for market {market} returns "{indices}"')
@@ -79,9 +80,3 @@ def step_impl(context, market, indices):
 @then('the {index_code} index value is {index_value}')
 def step_impl(context, index_code, index_value):
     assert False
-
-
-@when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
-def step_impl(context, market, year, month, day):
-    assert False
-

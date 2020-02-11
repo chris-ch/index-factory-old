@@ -1,11 +1,17 @@
 import logging
 import sys
+import os
 import pexpect
 
 _child = None
 
 def before_all(context):
     context.config.setup_logging()
+
+    # S3 setup
+    os.environ['AWS_ACCESS_KEY_ID'] = 'S3RVER'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'S3RVER'
+
 
 def Xbefore_feature(context, feature):
     """
@@ -17,6 +23,7 @@ def Xbefore_feature(context, feature):
         _child = pexpect.spawn('sls offline start', logfile=logs)
         _child.expect('Offline \[HTTP\] listening on .*')
         logging.info('serverless offline started successfully')
+
 
 def Xafter_feature(context, feature):
     if _child:
