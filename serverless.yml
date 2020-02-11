@@ -25,26 +25,6 @@ custom:
     port: 8001
     directory: /tmp
 
-#  dynamodbStream:
-#    region: us-east-1
-#    apiVersion: '20200101'
-#    host: 127.0.0.1
-#    port: 8000
-#    pollForever: true
-#    streams:
-#      - table: index-factory-table-${self:provider.stage}
-#        functions:
-#          - computeIndex
-
-#  serverless-offline-dynamodb-streams:
-#    apiVersion: '2013-12-02'
-#    endpoint: http://0.0.0.0:8000
-#    region: us-east-1
-#    accessKeyId: root
-#    secretAccessKey: root
-#    skipCacheInvalidation: false
-#    readInterval: 500
-
 provider:
   name: aws
   runtime: python3.6
@@ -79,10 +59,10 @@ functions:
       - s3: local-bucket
         event: s3:*
       - stream:
-        batchSize: 1
-        startingPosition: LATEST
         enabled: true
         type: dynamodb
+        batchSize: 1
+        startingPosition: TRIM_HORIZON
         arn:
           Fn::GetAtt: [IndexFactoryDynamoDBTable, StreamArn]
 
@@ -104,7 +84,7 @@ resources:
     Type: AWS::Cognito::UserPool
     Properties:
       MfaConfiguration: OFF
-      UserPoolName: my-user-pool
+      UserPoolName: index-factory-user-pool
       UsernameAttributes:
         - email
       Policies:
@@ -120,12 +100,12 @@ resources:
     IndexFactoryS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: local-bucket
+        BucketName: index-factory-daily-prices
 
     CognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
-        ClientName: my-user-pool-client
+        ClientName: index-factory-user-pool-client
         GenerateSecret: False
         UserPoolId:
           Ref: CognitoUserPool
@@ -151,8 +131,6 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        StreamSpecification:
-          StreamViewType: NEW_IMAGE
 
 # - serverless-offline-dynamodb-streams
 plugins:
@@ -160,4 +138,4 @@ plugins:
   - serverless-s3-local
   - serverless-python-requirements
   - serverless-wsgi
-  - serverless-offline
+  - serverless-offline # serverless-offline needs to be last in the list
