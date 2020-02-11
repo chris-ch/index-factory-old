@@ -2,13 +2,15 @@ import os
 import requests
 import logging
 import json
-from datetime import date
-from behave import given, when, then, step
+from behave import given, when, then
+from awscli import clidriver
+
 
 @given('we have a local serverless instance running')
 def step_impl(context):
     result = requests.get('http://127.0.0.1:3000')
     assert result.status_code == 200
+
 
 @when('we define a new index {index_name} ({index_code}) starting on {year}-{month}-{day} depending on markets {markets}')
 def step_impl(context, index_name, index_code, year, month, day, markets):
@@ -24,8 +26,19 @@ def step_impl(context, index_name, index_code, year, month, day, markets):
     result = json.loads(response.text)
     assert result['indexCode'] == index_code
 
+
 @when('we upload a CSV file with daily prices as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
+
+    os.environ['AWS_ACCESS_KEY_ID'] = 'S3RVER'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'S3RVER'
+    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
+            's3api', 'put-object', '--bucket', 'index-factory-daily-prices-bucket',
+            '--key', '"US/2020/01/US_20200131.csv"', '--body', 'resources/fake-data/US_20200131.csv']
+
+    status = clidriver.create_clidriver().main(args)
+    assert status == 0
+    return
     url = "http://localhost:3000/upload-prices/{}".format(market)
     test_prices_path = 'resources/fake-data'
     filename = '{}_{}{}{}.csv'.format(market, year, month, day)
@@ -36,6 +49,7 @@ def step_impl(context, market, year, month, day):
         logging.info('prices upload response: %s', str(json_response))
         assert json_response['partitionKey'] == 'eod-prices#{}'.format(market)
         assert json_response['sortKey'] == 'eod-prices#{}{}{}'.format(year, month, day)
+
 
 @when('we upload a CSV file with number of shares as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
@@ -50,6 +64,7 @@ def step_impl(context, market, year, month, day):
         logging.info('number of shares upload response: %s', str(json_response))
         assert json_response['count'] > 0
 
+
 @then('querying indices for market {market} returns "{indices}"')
 def step_impl(context, market, indices):
     url = "http://localhost:3000/markets/{}".format(market)
@@ -60,9 +75,11 @@ def step_impl(context, market, indices):
     for item in json_response['indices']:
         assert item['indexCode'] in indices.split(',')
 
+
 @then('the {index_code} index value is {index_value}')
 def step_impl(context, index_code, index_value):
     assert False
+
 
 @when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
 def step_impl(context, market, year, month, day):
