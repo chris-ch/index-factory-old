@@ -33,7 +33,7 @@ def step_impl(context, market, year, month, day):
     args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
             's3api', 'put-object', 
             '--bucket', 'index-factory-daily-prices-bucket',
-            '--key', '"{market}/{year}/{month}/{market}_{year}{month}{day}.csv"'.format(market=market, year=year, month=month, day=day),
+            '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
     status = clidriver.create_clidriver().main(args)
@@ -46,7 +46,7 @@ def step_impl(context, market, year, month, day):
     args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
             's3api', 'put-object', 
             '--bucket', 'index-factory-number-of-shares-bucket',
-            '--key', '"{market}/{year}/{month}/{market}_{year}{month}{day}.csv"'.format(market=market, year=year, month=month, day=day),
+            '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_NOSH_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
     status = clidriver.create_clidriver().main(args)
@@ -59,7 +59,7 @@ def step_impl(context, market, year, month, day):
     args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
             's3api', 'put-object', 
             '--bucket', 'index-factory-dividends-bucket',
-            '--key', '"{market}/{year}/{month}/{market}_{year}{month}{day}.csv"'.format(market=market, year=year, month=month, day=day),
+            '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_DIVIDENDS_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
     status = clidriver.create_clidriver().main(args)
@@ -80,3 +80,14 @@ def step_impl(context, market, indices):
 @then('the {index_code} index value is {index_value}')
 def step_impl(context, index_code, index_value):
     assert False
+
+@then(u'we have got {count} files for {year}-{month} for market {market_code}')
+def step_impl(context, count, year, month, market_code):
+    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
+            's3api', 'list-objects-v2', 
+            '--bucket', 'index-factory-daily-prices-bucket',
+            '--prefix', '{market}/{year}/{month}'.format(market=market_code, year=year, month=month)
+            ]
+
+    status = clidriver.create_clidriver().main(args)
+    assert status == 0

@@ -2,6 +2,7 @@
 Entry points
 """
 import os
+import io
 import logging
 import decimal
 from datetime import date, datetime
@@ -22,8 +23,14 @@ if IS_OFFLINE:
         region_name='localhost',
         endpoint_url='http://localhost:8000'
     )
+    s3 = boto3.resource(
+        's3',
+        region_name='localhost',
+        endpoint_url='http://localhost:8001'
+    )
 else:
     db = boto3.resource('dynamodb')
+    s3 = boto3.resource('s3')
 
 
 class DecimalJSONEncoder(flask.json.JSONEncoder):
@@ -332,11 +339,28 @@ def handle_daily_prices(event, context) -> str:
     for record in event['Records']:
         logging.info('record: %s', str(record))
         logging.info('processing file %s', record['s3']['object']['key'])
+        event_file_name = record['s3']['object']['key']
+        filename = event_file_name.split('/')[-1][:-4]
+        market_code, date_yyyymmdd = filename.split('_')
+        year = date_yyyymmdd[:3]
+        month = date_yyyymmdd[4:4]
+        day = date_yyyymmdd[5:6]
+        bucket = s3.Bucket('index-factory-daily-prices-bucket')
+        prices_data = io.BytesIO()
+        bucket.download_fileobj(event_file_name, prices_data)
+        prices = prices_data.getvalue().decode('utf-8')
+        
+        logging.info('processing prices: %s', prices)
+
+
+        #loggin.info('search pattern: %s', '{market_code}/{year}/{month}'.format(market_code=market_code, year=year, month=month, day=day))
+        #for prefix in result.search('{market_code}/{year}/{month}'.format(market_code=market_code, year=year, month=month, day=day)):
+        #    logger.info('prefix: %s', prefix.get('Prefix'))
         # loading file from s3
         # parsing file ?
 
     return 0
-    
+
     as_of_date = event.get('as_of_date')
     market = event.get('market_code')
     # retrieving indices depending on market
