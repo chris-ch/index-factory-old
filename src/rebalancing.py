@@ -1,12 +1,21 @@
 """
 Rebalancing.
 """
-import logging
 import calendar
 from datetime import date
 from enum import Enum
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Tuple
 from decimal import Decimal
+
+
+class Quarter(Enum):
+    """
+    Quarters.
+    """
+    Q1 = 0
+    Q2 = 1
+    Q3 = 2
+    Q4 = 3
 
 
 class WeekDay(Enum):
@@ -22,7 +31,41 @@ class WeekDay(Enum):
     SUNDAY = 6
 
 
-def first_last_weekday(year: int, month: int, weekday: WeekDay = WeekDay.MONDAY) -> bool:
+class RebalancingFrequency(Enum):
+    """
+    Available rebalancing frequencies.
+    """
+    MONTHLY = 'monthly'
+    QUARTERLY = 'quarterly'
+    ANNUALLY = 'annually'
+
+
+class RebalancingDay(Enum):
+    LAST_DAY_OF_PERIOD = 'last day of period'
+    FIRST_DAY_OF_PERIOD = 'first day of period'
+
+
+class RebalancingRule(object):
+
+    def __init__(self, rule_frequency: RebalancingFrequency, rule_week_day: WeekDay, rule_start_end: RebalancingDay):
+        self._rule_frequency = rule_frequency
+        self._rule_week_day = rule_week_day
+        self._rule_start_end = rule_start_end
+
+    @property
+    def rule_frequency(self):
+        return self._rule_frequency
+
+    @property
+    def rule_week_day(self):
+        return self._rule_week_day
+
+    @property
+    def rule_start_end(self):
+        return self._rule_start_end
+
+
+def first_last_weekday_month(year: int, month: int, weekday: WeekDay = WeekDay.MONDAY) -> Tuple[int, int]:
     """ Checking rebalancing day.
     """
     weeks = calendar.monthcalendar(year, month)
@@ -41,10 +84,40 @@ def first_last_weekday(year: int, month: int, weekday: WeekDay = WeekDay.MONDAY)
     return first_weekday, last_weekday
 
 
-def is_rebalancing_day(as_of_date: date) -> bool:
+def first_last_weekday_quarter(as_of_date: date, weekday: WeekDay = WeekDay.MONDAY) -> Tuple[int, int]:
+    """ Checking rebalancing day.
+    """
+    quarter_start_weeks = calendar.monthcalendar(as_of_date.year, (as_of_date.month - 1) // 3 * 3 + 1)
+    quarter_end_weeks = calendar.monthcalendar(as_of_date.year, (as_of_date.month - 1) // 3 * 3 + 3)
+    first_weekday = 0
+    for week in quarter_start_weeks:
+        if week[weekday.value] != 0:
+            first_weekday = week[weekday.value]
+            break
+
+    last_weekday = 0
+    for week in reversed(quarter_end_weeks):
+        if week[weekday.value] != 0:
+            last_weekday = week[weekday.value]
+            break
+
+    return first_weekday, last_weekday
+
+
+def is_rebalancing_day(as_of_date: date, rule: RebalancingRule) -> bool:
     """ 
     """
-    rebalancing_day = first_last_weekday(as_of_date.year, as_of_date.month)[0]
+    if rule.rule_frequency == RebalancingFrequency.MONTHLY:
+        first_day, last_day = first_last_weekday_month(as_of_date.year, as_of_date.month, rule.rule_week_day)
+
+    elif rule.rule_frequency == RebalancingFrequency.QUARTERLY:
+        first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
+
+    else:
+        first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
+
+    rebalancing_day = (first_day, last_day)[rule.rule_start_end == RebalancingDay.LAST_DAY_OF_PERIOD]
+
     return as_of_date.day == rebalancing_day
 
 

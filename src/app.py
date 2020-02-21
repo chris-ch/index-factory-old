@@ -352,31 +352,15 @@ def handle_daily_prices(event, context) -> str:
         prices_data = io.BytesIO()
         bucket.download_fileobj(Key=event_file_name, Fileobj=prices_data)
         prices = prices_data.getvalue().decode('utf-8')
-        
         logging.info('processing prices: %s', prices)
-
-
-        #loggin.info('search pattern: %s', '{market_code}/{year}/{month}'.format(market_code=market_code, year=year, month=month, day=day))
-        #for prefix in result.search('{market_code}/{year}/{month}'.format(market_code=market_code, year=year, month=month, day=day)):
-        #    logger.info('prefix: %s', prefix.get('Prefix'))
-        # loading file from s3
-        # parsing file ?
+        impacted_indices = load_market_indices(market_code)
+        logging.info('related indices: %s', impacted_indices)
+        for index in impacted_indices:
+            # compute weightings as of date
+            # compute index value
+            pass
 
     return 0
-
-    as_of_date = event.get('as_of_date')
-    market = event.get('market_code')
-    # retrieving indices depending on market
-    indices = load_market_indices(market)
-    for index_code in indices:
-        logging.error('updating index %s as of %s', index_code, as_of_date)
-        # loading number of shares as of date
-        # loading prices if not available in context
-        # screening according to index rules
-        # computing weights according to index rules
-        # computing index level
-        
-    return flask.jsonify({'updated_indices': {}})
 
 def handle_number_of_shares(event, context) -> str:
     """

@@ -4,7 +4,7 @@ import os
 from datetime import date
 
 from indices import parse_daily_prices, LoaderDecimalCSV
-from rebalancing import first_last_weekday, is_rebalancing_day
+from rebalancing import first_last_weekday_month, is_rebalancing_day, RebalancingRule, RebalancingFrequency, WeekDay, RebalancingDay
 
 
 class TestRebalancing(unittest.TestCase):
@@ -19,13 +19,35 @@ class TestRebalancing(unittest.TestCase):
         pass
 
     def test_first_last_weekday(self):
-        first, last = first_last_weekday(2020, 2)
+        first, last = first_last_weekday_month(2020, 2)
         self.assertEqual(first, 3)
         self.assertEqual(last, 24)
 
     def test_is_rebalancing_day(self):
-        self.assertTrue(is_rebalancing_day(date(2020, 2, 3)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 4)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+
+        self.assertFalse(is_rebalancing_day(date(2020, 4, 6), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 4, 7), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 4, 28), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+
+        self.assertFalse(is_rebalancing_day(date(2020, 6, 2), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 6, 30), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
 
     def test_load_prices(self):
         test_prices_path = 'resources/nyse-2018'
@@ -36,7 +58,7 @@ class TestRebalancing(unittest.TestCase):
             prices_file = os.path.abspath(os.sep.join([test_prices_path, filename]))
             with open(prices_file, 'r') as prices:
                 lines = prices.readlines()
-                prices = parse_daily_prices(lines)
+                _ = parse_daily_prices(lines)
 
     def test_back_calculation(self):
         test_prices_path = 'resources/fake-data'
