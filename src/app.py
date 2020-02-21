@@ -18,6 +18,8 @@ INDEX_FACTORY_TABLE = os.environ['INDEX_FACTORY_TABLE']
 IS_OFFLINE = os.environ.get('IS_OFFLINE')
 
 if IS_OFFLINE:
+    from botocore import UNSIGNED
+    from botocore import config
     db = boto3.resource(
         'dynamodb',
         region_name='localhost',
@@ -26,7 +28,8 @@ if IS_OFFLINE:
     s3 = boto3.resource(
         's3',
         region_name='localhost',
-        endpoint_url='http://localhost:8001'
+        endpoint_url='http://localhost:8001',
+        config=config.Config(signature_version=UNSIGNED)  # Otherwise S3 triggered lambdas fail 403
     )
 else:
     db = boto3.resource('dynamodb')
@@ -347,7 +350,7 @@ def handle_daily_prices(event, context) -> str:
         day = date_yyyymmdd[5:6]
         bucket = s3.Bucket('index-factory-daily-prices-bucket')
         prices_data = io.BytesIO()
-        bucket.download_fileobj(event_file_name, prices_data)
+        bucket.download_fileobj(Key=event_file_name, Fileobj=prices_data)
         prices = prices_data.getvalue().decode('utf-8')
         
         logging.info('processing prices: %s', prices)
