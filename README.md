@@ -68,3 +68,9 @@ AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint htt
 ```bash
 AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint http://127.0.0.1:8000 dynamodb put-item --table-name index-factory-table-local --item '{ "partitionKey": {"S": "1" }, "sortKey": { "S": "1989"}}'
 ```
+
+## Running unit tests
+
+```bash
+PYTHONPATH=src python -m unittest tests/*.py
+```

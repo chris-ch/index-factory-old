@@ -18,7 +18,9 @@ def step_impl(context, index_name, index_code, year, month, day, markets):
         'name': index_name,
         'indexCode': index_code,
         'startDate': '%d%02d%02d' % (int(year), int(month), int(day)),
-        'markets': markets.split(',')
+        'markets': markets.split(','),
+        'rebalancingFrequency': 'monthly',
+        'rebalancingDay': ''
     }
     index_json = json.dumps(index_data)
     logging.info('json: %s', index_json)

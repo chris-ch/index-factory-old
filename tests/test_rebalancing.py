@@ -4,7 +4,8 @@ import os
 from datetime import date
 
 from indices import parse_daily_prices, LoaderDecimalCSV
-from rebalancing import first_last_weekday_month, is_rebalancing_day, RebalancingRule, RebalancingFrequency, WeekDay, RebalancingDay
+from rebalancing import first_last_weekday_month, first_last_weekday_quarter, is_rebalancing_day
+from rebalancing import RebalancingRule, RebalancingFrequency, WeekDay, RebalancingDay
 
 
 class TestRebalancing(unittest.TestCase):
@@ -20,8 +21,16 @@ class TestRebalancing(unittest.TestCase):
 
     def test_first_last_weekday(self):
         first, last = first_last_weekday_month(2020, 2)
-        self.assertEqual(first, 3)
-        self.assertEqual(last, 24)
+        self.assertEqual(first, date(2020, 2, 3))
+        self.assertEqual(last, date(2020, 2, 24))
+
+    def test_first_last_weekday_quarter(self):
+        first, last = first_last_weekday_quarter(date(2020, 11, 12))
+        self.assertEqual(first, date(2020, 10, 5))
+        self.assertEqual(last, date(2020, 12, 28))
+        first, last = first_last_weekday_quarter(date(2020, 3, 12))
+        self.assertEqual(first, date(2020, 1, 6))
+        self.assertEqual(last, date(2020, 3, 30))
 
     def test_is_rebalancing_day(self):
         self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
