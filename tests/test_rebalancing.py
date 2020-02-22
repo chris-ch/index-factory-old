@@ -4,8 +4,8 @@ import os
 from datetime import date
 
 from indices import parse_daily_prices, LoaderDecimalCSV
-from rebalancing import first_last_weekday_month, first_last_weekday_quarter, is_rebalancing_day
-from rebalancing import RebalancingRule, RebalancingFrequency, WeekDay, RebalancingDay
+from rebalancing import first_last_weekday_month, first_last_weekday_quarter, is_rebalancing_day, get_rebalancing_day_next, get_rebalancing_day_previous
+from rebalancing import RebalancingRule, RebalancingFrequency, WeekDay, RebalancingSide
 
 
 class TestRebalancing(unittest.TestCase):
@@ -32,31 +32,66 @@ class TestRebalancing(unittest.TestCase):
         self.assertEqual(first, date(2020, 1, 6))
         self.assertEqual(last, date(2020, 3, 30))
 
+    def test_get_rebalancing_day(self):
+        self.assertEqual(date(2020, 2, 25), get_rebalancing_day_next(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 25), get_rebalancing_day_next(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 25), get_rebalancing_day_next(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 25), get_rebalancing_day_next(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 3, 31), get_rebalancing_day_next(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+
+        self.assertEqual(date(2020, 2, 4), get_rebalancing_day_next(date(2020, 1, 28), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 4), get_rebalancing_day_next(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 4), get_rebalancing_day_next(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 3, 3), get_rebalancing_day_next(date(2020, 2, 5), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 3, 3), get_rebalancing_day_next(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 3, 3), get_rebalancing_day_next(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 3, 3), get_rebalancing_day_next(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 4, 6), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 4, 7), get_rebalancing_day_next(date(2020, 4, 7), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 7, 7), get_rebalancing_day_next(date(2020, 4, 28), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+
+        self.assertEqual(date(2020, 6, 30), get_rebalancing_day_next(date(2020, 6, 2), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 6, 30), get_rebalancing_day_next(date(2020, 6, 30), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        
+        # prev
+        self.assertEqual(date(2020, 1, 28), get_rebalancing_day_previous(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 1, 28), get_rebalancing_day_previous(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 1, 28), get_rebalancing_day_previous(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 25), get_rebalancing_day_previous(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertEqual(date(2020, 2, 25), get_rebalancing_day_previous(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+
     def test_is_rebalancing_day(self):
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
-        self.assertTrue(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
 
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertTrue(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
 
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 3), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 4), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 24), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 25), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 2, 26), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
 
-        self.assertFalse(is_rebalancing_day(date(2020, 4, 6), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertTrue(is_rebalancing_day(date(2020, 4, 7), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
-        self.assertFalse(is_rebalancing_day(date(2020, 4, 28), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 4, 6), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 4, 7), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 4, 28), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)))
 
-        self.assertFalse(is_rebalancing_day(date(2020, 6, 2), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
-        self.assertTrue(is_rebalancing_day(date(2020, 6, 30), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingDay.LAST_DAY_OF_PERIOD)))
+        self.assertFalse(is_rebalancing_day(date(2020, 6, 2), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
+        self.assertTrue(is_rebalancing_day(date(2020, 6, 30), RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)))
 
     def test_load_prices(self):
         test_prices_path = 'resources/nyse-2018'

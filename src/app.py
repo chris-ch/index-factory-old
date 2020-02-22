@@ -73,34 +73,6 @@ def make_index_details_sort_key(index_code, markets):
     return 'index-details#{}#{}'.format(index_code, '@' + '@'.join(markets) + '@')
 
 
-def make_prices_partition_key(market_code):
-    """
-    Partition key for prices.
-    """
-    return 'eod-prices#' + market_code
-
-
-def make_prices_sort_key(as_of_date: date):
-    """
-    Sort key for prices.
-    """
-    return 'eod-prices#' + as_of_date.strftime('%Y%m%d')
-
-
-def make_nosh_partition_key(market_code):
-    """
-    Partition key for number of shares.
-    """
-    return 'nosh#' + market_code
-
-
-def make_nosh_sort_key(as_of_date: date):
-    """
-    Sort key for number of shares.
-    """
-    return 'nosh#' + as_of_date.strftime('%Y%m%d')
-
-
 @handler.route("/indices/<string:index_code>")
 def get_index(index_code):
     """
@@ -218,94 +190,6 @@ def list_prices():
     return flask.jsonify(data)
 
 
-@handler.route('/upload-prices/<string:market_code>', methods=['POST'])
-def upload_prices(market_code):
-    """
-    Daily prices for market_code in CSV format.
-    """
-    # check if the post request has the file part
-    if 'prices' not in flask.request.files:
-        return flask.jsonify({'error': 'Please provide a prices file'}), 400
-
-    file = flask.request.files['prices']
-    # if user does not select file, browser also
-    # submit an empty part without filename
-    if file.filename == '':
-        return flask.jsonify({'error': 'Please provide a prices file'}), 400
-
-    content = [line.decode('utf-8').strip().split(',') for line in file.readlines()]
-    header = content[0]
-    prices = [dict(zip(header, row)) for row in content[1:]]
-    if len(prices) == 0:
-        return flask.jsonify({
-            'marketCode': market_code,
-            'header': header,
-            'count': 0
-            })
-
-    __LOGGER.info('head prices: %s', str(prices[:5]))
-    __LOGGER.info('tail prices: %s', str(prices[-5:]))
-    table = db.Table(INDEX_FACTORY_TABLE)
-    as_of_date = datetime.strptime(prices[0]['Date'], '%d-%b-%Y').date()
-    prices_data = {
-        'partitionKey': make_prices_partition_key(market_code),
-        'sortKey': make_prices_sort_key(as_of_date),
-        'prices': prices
-    }
-    table.put_item(Item=prices_data)
-    return flask.jsonify({
-        'marketCode': market_code,
-        'header': header,
-        'count': len(prices),
-        'partitionKey': make_prices_partition_key(market_code),
-        'sortKey': make_prices_sort_key(as_of_date)
-    })
-
-
-@handler.route('/upload-nosh/<string:market_code>', methods=['POST'])
-def upload_nosh(market_code: str) -> str:
-    """
-    Number of shares for market_code in CSV format.
-    """
-    # check if the post request has the file part
-    if 'numberOfShares' not in flask.request.files:
-        return flask.jsonify({'error': 'Please provide a number-of-shares file'}), 400
-
-    file = flask.request.files['numberOfShares']
-    # if user does not select file, browser also
-    # submit an empty part without filename
-    if file.filename == '':
-        return flask.jsonify({'error': 'Please provide a number-of-shares file'}), 400
-
-    content = [line.decode('utf-8').strip().split(',') for line in file.readlines()]
-    header = content[0]
-    nosh = [dict(zip(header, row)) for row in content[1:]]
-    if len(nosh) == 0:
-        return flask.jsonify({
-            'marketCode': market_code,
-            'header': header,
-            'count': 0
-            })
-
-    __LOGGER.info('head nosh: %s', str(nosh[:5]))
-    __LOGGER.info('tail nosh: %s', str(nosh[-5:]))
-    table = db.Table(INDEX_FACTORY_TABLE)
-    as_of_date = datetime.strptime(nosh[0]['Date'], '%d-%b-%Y').date()
-    nosh_data = {
-        'partitionKey': make_nosh_partition_key(market_code),
-        'sortKey': make_nosh_sort_key(as_of_date),
-        'numberOfShares': nosh
-    }
-    table.put_item(Item=nosh_data)
-    return flask.jsonify({
-        'marketCode': market_code,
-        'header': header,
-        'count': len(nosh),
-        'partitionKey': make_nosh_partition_key(market_code),
-        'sortKey': make_nosh_sort_key(as_of_date)
-    })
-
-
 def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
     table = db.Table(INDEX_FACTORY_TABLE)
     results = table.scan(
@@ -345,9 +229,16 @@ def handle_daily_prices(event, context) -> str:
         event_file_name = record['s3']['object']['key']
         filename = event_file_name.split('/')[-1][:-4]
         market_code, date_yyyymmdd = filename.split('_')
-        year = date_yyyymmdd[:3]
-        month = date_yyyymmdd[4:4]
-        day = date_yyyymmdd[5:6]
+        logging.info('processing file: %s', filename)
+        year = date_yyyymmdd[:4]
+        month = date_yyyymmdd[4:6]
+        day = date_yyyymmdd[6:8]
+        logging.info('as of date: %s-%s-%s', year, month, day)
+        previous_rebalancing_day = date(int(year), int(month), int(day))
+
+        logging.info('loading number of shares data as of %s', previous_rebalancing_day)
+        logging.info('loading prices data as of %s', previous_rebalancing_day)
+
         bucket = s3.Bucket('index-factory-daily-prices-bucket')
         prices_data = io.BytesIO()
         bucket.download_fileobj(Key=event_file_name, Fileobj=prices_data)

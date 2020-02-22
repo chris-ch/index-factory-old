@@ -2,20 +2,10 @@
 Rebalancing.
 """
 import calendar
-from datetime import date
+from datetime import date, timedelta
 from enum import Enum
 from typing import Iterable, Dict, Tuple
 from decimal import Decimal
-
-
-class Quarter(Enum):
-    """
-    Quarters.
-    """
-    Q1 = 0
-    Q2 = 1
-    Q3 = 2
-    Q4 = 3
 
 
 class WeekDay(Enum):
@@ -40,14 +30,14 @@ class RebalancingFrequency(Enum):
     ANNUALLY = 'annually'
 
 
-class RebalancingDay(Enum):
+class RebalancingSide(Enum):
     LAST_DAY_OF_PERIOD = 'last day of period'
     FIRST_DAY_OF_PERIOD = 'first day of period'
 
 
 class RebalancingRule(object):
 
-    def __init__(self, rule_frequency: RebalancingFrequency, rule_week_day: WeekDay, rule_start_end: RebalancingDay):
+    def __init__(self, rule_frequency: RebalancingFrequency, rule_week_day: WeekDay, rule_start_end: RebalancingSide):
         self._rule_frequency = rule_frequency
         self._rule_week_day = rule_week_day
         self._rule_start_end = rule_start_end
@@ -106,7 +96,7 @@ def first_last_weekday_quarter(as_of_date: date, weekday: WeekDay = WeekDay.MOND
     return date(as_of_date.year, month_start, first_weekday), date(as_of_date.year, month_end, last_weekday)
 
 
-def get_rebalancing_day_previous(as_of_date: date, rule: RebalancingRule) -> date:
+def get_rebalancing_first_last(as_of_date: date, rule: RebalancingRule) -> Tuple[date, date]:
     if rule.rule_frequency == RebalancingFrequency.MONTHLY:
         first_day, last_day = first_last_weekday_month(as_of_date.year, as_of_date.month, rule.rule_week_day)
 
@@ -116,39 +106,30 @@ def get_rebalancing_day_previous(as_of_date: date, rule: RebalancingRule) -> dat
     else:
         first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
 
-    rebalancing_day = (first_day, last_day)[rule.rule_start_end == RebalancingDay.LAST_DAY_OF_PERIOD]
+    return first_day, last_day
+
+
+def get_rebalancing_day_previous(as_of_date: date, rule: RebalancingRule) -> date:
+    first_day, last_day = get_rebalancing_first_last(as_of_date, rule)
+    rebalancing_day = (first_day, last_day)[rule.rule_start_end == RebalancingSide.LAST_DAY_OF_PERIOD]
+    if rebalancing_day > as_of_date:
+        rebalancing_day = get_rebalancing_day_previous(as_of_date + timedelta(days=-1), rule)
     return rebalancing_day
 
 
 def get_rebalancing_day_next(as_of_date: date, rule: RebalancingRule) -> date:
-    if rule.rule_frequency == RebalancingFrequency.MONTHLY:
-        first_day, last_day = first_last_weekday_month(as_of_date.year, as_of_date.month, rule.rule_week_day)
+    first_day, last_day = get_rebalancing_first_last(as_of_date, rule)
+    rebalancing_day = (first_day, last_day)[rule.rule_start_end == RebalancingSide.LAST_DAY_OF_PERIOD]
+    if rebalancing_day < as_of_date:
+        rebalancing_day = get_rebalancing_day_next(as_of_date + timedelta(days=1), rule)
 
-    elif rule.rule_frequency == RebalancingFrequency.QUARTERLY:
-        first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
-
-    else:
-        first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
-
-    rebalancing_day = (first_day, last_day)[rule.rule_start_end == RebalancingDay.LAST_DAY_OF_PERIOD]
     return rebalancing_day
 
 
 def is_rebalancing_day(as_of_date: date, rule: RebalancingRule) -> bool:
     """ 
     """
-    if rule.rule_frequency == RebalancingFrequency.MONTHLY:
-        first_day, last_day = first_last_weekday_month(as_of_date.year, as_of_date.month, rule.rule_week_day)
-
-    elif rule.rule_frequency == RebalancingFrequency.QUARTERLY:
-        first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
-
-    else:
-        first_day, last_day = first_last_weekday_quarter(as_of_date, rule.rule_week_day)
-
-    rebalancing_day = (first_day, last_day)[rule.rule_start_end == RebalancingDay.LAST_DAY_OF_PERIOD]
-
-    return as_of_date.day == rebalancing_day.day
+    return as_of_date == get_rebalancing_day_next(as_of_date, rule)
 
 
 def rebalance(as_of_date: date) -> Dict[str, Decimal]:
