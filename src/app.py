@@ -5,12 +5,14 @@ import os
 import io
 import logging
 import decimal
-from datetime import date, datetime
+from datetime import date
 from typing import Iterable, Dict
 
 import boto3
 from boto3.dynamodb.conditions import Key, Attr, BeginsWith
 import flask
+
+from rebalancing import get_rebalancing_day_previous
 
 __LOGGER = logging.getLogger()
 __LOGGER.setLevel(logging.INFO)
@@ -218,7 +220,7 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
     return data
 
 
-def handle_daily_prices(event, context) -> str:
+def handle_daily_prices(event, context) -> int:
     """
     This function is triggered everytime a new price file is available.
     """
@@ -234,8 +236,7 @@ def handle_daily_prices(event, context) -> str:
         month = date_yyyymmdd[4:6]
         day = date_yyyymmdd[6:8]
         logging.info('as of date: %s-%s-%s', year, month, day)
-        previous_rebalancing_day = date(int(year), int(month), int(day))
-
+        file_date = date(int(year), int(month), int(day))
         logging.info('loading number of shares data as of %s', previous_rebalancing_day)
         logging.info('loading prices data as of %s', previous_rebalancing_day)
 
@@ -247,13 +248,17 @@ def handle_daily_prices(event, context) -> str:
         impacted_indices = load_market_indices(market_code)
         logging.info('related indices: %s', impacted_indices)
         for index in impacted_indices:
+            logging.info('computing index: %s', index)
+            #index_rule = index
+            #previous_rebalancing_day = get_rebalancing_day_previous(file_date, rule=index_rule)
             # compute weightings as of date
             # compute index value
             pass
 
     return 0
 
-def handle_number_of_shares(event, context) -> str:
+
+def handle_number_of_shares(event, context) -> int:
     """
     This function is triggered everytime a new number of shares file is available.
     """
@@ -263,7 +268,7 @@ def handle_number_of_shares(event, context) -> str:
     return 0
 
 
-def handle_dividends(event, context) -> str:
+def handle_dividends(event, context) -> int:
     """
     This function is triggered everytime a new dividend file is available.
     """

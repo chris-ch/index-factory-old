@@ -13,7 +13,7 @@ setup(
     url='https://github.com/chris-ch/indexfactory',
     author='Christophe',
     author_email='chris.perso@gmail.com',
-    packages=['indices'],
+    packages=['indices', 'rebalancing'],
     package_dir={
         'indices': 'src'
     },
