@@ -12,7 +12,6 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr, BeginsWith
 import flask
 
-from rebalancing import get_rebalancing_day_previous
 
 __LOGGER = logging.getLogger()
 __LOGGER.setLevel(logging.INFO)
@@ -225,6 +224,10 @@ def handle_daily_prices(event, context) -> int:
     This function is triggered everytime a new price file is available.
     """
     logging.info('****** daily prices triggered with s3 *******')
+    import sys
+    logging.info('PATH: %s', str(sys.path))
+    logging.info('CWD: %s', os.getcwd())
+    from . import rebalancing
     for record in event['Records']:
         logging.info('record: %s', str(record))
         logging.info('processing file %s', record['s3']['object']['key'])
@@ -237,6 +240,8 @@ def handle_daily_prices(event, context) -> int:
         day = date_yyyymmdd[6:8]
         logging.info('as of date: %s-%s-%s', year, month, day)
         file_date = date(int(year), int(month), int(day))
+        index_rule = rebalancing.REBALANCING_MONTHLY_LAST_TUESDAY
+        previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
         logging.info('loading number of shares data as of %s', previous_rebalancing_day)
         logging.info('loading prices data as of %s', previous_rebalancing_day)
 
@@ -250,7 +255,6 @@ def handle_daily_prices(event, context) -> int:
         for index in impacted_indices:
             logging.info('computing index: %s', index)
             #index_rule = index
-            #previous_rebalancing_day = get_rebalancing_day_previous(file_date, rule=index_rule)
             # compute weightings as of date
             # compute index value
             pass

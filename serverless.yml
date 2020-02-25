@@ -74,6 +74,11 @@ functions:
         events:
           - s3:ObjectCreated:Put
 
+package:
+  individually: false
+  include:
+    - src/**
+
 resources:
   ApiGatewayAuthorizer:
     DependsOn:

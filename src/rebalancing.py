@@ -55,6 +55,9 @@ class RebalancingRule(object):
         return self._rule_start_end
 
 
+REBALANCING_MONTHLY_LAST_TUESDAY = RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)
+
+
 def first_last_weekday_month(year: int, month: int, weekday: WeekDay = WeekDay.MONDAY) -> Tuple[date, date]:
     """ Checking rebalancing day.
     """
