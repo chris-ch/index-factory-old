@@ -1,6 +1,7 @@
 """
 Rebalancing.
 """
+import itertools
 import calendar
 from datetime import date, timedelta
 from enum import Enum
@@ -12,13 +13,24 @@ class WeekDay(Enum):
     """
     Enum version of calendar week days.
     """
-    MONDAY = 0
-    TUESDAY = 1
-    WEDNESDAY = 2
-    THURSDAY = 3
-    FRIDAY = 4
-    SATURDAY = 5
-    SUNDAY = 6
+    MONDAY = 'monday'
+    TUESDAY = 'tuesday'
+    WEDNESDAY = 'wednesday'
+    THURSDAY = 'thursday'
+    FRIDAY = 'friday'
+    SATURDAY = 'saturday'
+    SUNDAY = 'sunday'
+
+    def __repr__(self):
+        return self.name.lower()
+
+    @property
+    def position(self):
+        return self.positions[self.value]
+
+    @property
+    def positions(self):
+        return dict([(day.value, count) for count, day in enumerate(WeekDay)])
 
 
 class RebalancingFrequency(Enum):
@@ -55,6 +67,9 @@ class RebalancingRule(object):
         return self._rule_start_end
 
 
+REBALANCING_QUARTERLY_FIRST_TUESDAY = RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)
+REBALANCING_QUARTERLY_LAST_TUESDAY = RebalancingRule(RebalancingFrequency.QUARTERLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)
+REBALANCING_MONTHLY_FIRST_TUESDAY = RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.FIRST_DAY_OF_PERIOD)
 REBALANCING_MONTHLY_LAST_TUESDAY = RebalancingRule(RebalancingFrequency.MONTHLY, WeekDay.TUESDAY, RebalancingSide.LAST_DAY_OF_PERIOD)
 
 
@@ -64,14 +79,14 @@ def first_last_weekday_month(year: int, month: int, weekday: WeekDay = WeekDay.M
     weeks = calendar.monthcalendar(year, month)
     first_weekday = 0
     for week in weeks:
-        if week[weekday.value] != 0:
-            first_weekday = week[weekday.value]
+        if week[weekday.position] != 0:
+            first_weekday = week[weekday.position]
             break
 
     last_weekday = 0
     for week in reversed(weeks):
-        if week[weekday.value] != 0:
-            last_weekday = week[weekday.value]
+        if week[weekday.position] != 0:
+            last_weekday = week[weekday.position]
             break
 
     return date(year, month, first_weekday), date(year, month, last_weekday)
@@ -86,14 +101,14 @@ def first_last_weekday_quarter(as_of_date: date, weekday: WeekDay = WeekDay.MOND
     quarter_end_weeks = calendar.monthcalendar(as_of_date.year, month_end)
     first_weekday = 0
     for week in quarter_start_weeks:
-        if week[weekday.value] != 0:
-            first_weekday = week[weekday.value]
+        if week[weekday.position] != 0:
+            first_weekday = week[weekday.position]
             break
 
     last_weekday = 0
     for week in reversed(quarter_end_weeks):
-        if week[weekday.value] != 0:
-            last_weekday = week[weekday.value]
+        if week[weekday.position] != 0:
+            last_weekday = week[weekday.position]
             break
 
     return date(as_of_date.year, month_start, first_weekday), date(as_of_date.year, month_end, last_weekday)

@@ -121,6 +121,7 @@ def create_index():
     index_data = {key: value for key, value in flask.request.json.items()}
     index_data['partitionKey'] = make_index_partition_key(index_code)
     index_data['sortKey'] = make_index_details_sort_key(index_code, markets)
+    logging.info('saving index: %s', str(index_data))
     table.put_item(Item=index_data)
 
     return flask.jsonify({
@@ -153,44 +154,6 @@ def list_indices():
     return flask.jsonify(data)
 
 
-@handler.route("/prices", methods=["GET"])
-def list_prices():
-    """
-    Listing prices.
-    """
-    table = db.Table(INDEX_FACTORY_TABLE)
-    
-    def load_results(items):
-        data = [{key: value for key, value in row.items() if key != 'prices'} for row in items]
-        for row, item in zip(data, items):
-            row['count'] = len(item['prices'])        
-        return data
-
-    results = table.scan(
-        Select='ALL_ATTRIBUTES',
-        FilterExpression=(
-            Key('partitionKey').begins_with('prices#') 
-            & Key('sortKey').begins_with('daily#')
-            )
-        )
-
-    data = load_results(results.get('Items'))
-
-    while 'LastEvaluatedKey' in results:
-        results = table.scan(
-            Select='ALL_ATTRIBUTES', 
-            FilterExpression=(
-                Key('partitionKey').begins_with('prices#') 
-                & Key('sortKey').begins_with('daily#')
-                ),
-            ExclusiveStartKey=results['LastEvaluatedKey']
-            )
-
-        data += load_results(results.get('Items'))
-
-    return flask.jsonify(data)
-
-
 def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
     table = db.Table(INDEX_FACTORY_TABLE)
     results = table.scan(
@@ -198,11 +161,7 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
         FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains(
             '@{}@'.format(market_code))
     )
-    data = [{
-        'indexCode': row['indexCode'],
-        'name': row['name'],
-        'partitionKey': row['partitionKey']
-    } for row in results.get('Items')]
+    data = results.get('Items')
     while 'LastEvaluatedKey' in results:
         results = table.scan(
             Select='ALL_ATTRIBUTES',
@@ -210,12 +169,7 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
                 '@{}@'.format(market_code)),
             ExclusiveStartKey=results['LastEvaluatedKey']
         )
-        for row in results.get('Items'):
-            data.append({
-                'indexCode': row['indexCode'],
-                'name': row['name'],
-                'partitionKey': row['partitionKey']
-            })
+        data += results.get('Items')
     return data
 
 
@@ -234,27 +188,33 @@ def handle_daily_prices(event, context) -> int:
         event_file_name = record['s3']['object']['key']
         filename = event_file_name.split('/')[-1][:-4]
         market_code, date_yyyymmdd = filename.split('_')
-        logging.info('processing file: %s', filename)
+
         year = date_yyyymmdd[:4]
         month = date_yyyymmdd[4:6]
         day = date_yyyymmdd[6:8]
         logging.info('as of date: %s-%s-%s', year, month, day)
         file_date = date(int(year), int(month), int(day))
-        index_rule = rebalancing.REBALANCING_MONTHLY_LAST_TUESDAY
-        previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
-        logging.info('loading number of shares data as of %s', previous_rebalancing_day)
-        logging.info('loading prices data as of %s', previous_rebalancing_day)
-
-        bucket = s3.Bucket('index-factory-daily-prices-bucket')
-        prices_data = io.BytesIO()
-        bucket.download_fileobj(Key=event_file_name, Fileobj=prices_data)
-        prices = prices_data.getvalue().decode('utf-8')
-        logging.info('processing prices: %s', prices)
+        
         impacted_indices = load_market_indices(market_code)
         logging.info('related indices: %s', impacted_indices)
         for index in impacted_indices:
             logging.info('computing index: %s', index)
-            #index_rule = index
+
+            logging.info('processing file: %s', filename)
+            rebalancing_frequency = rebalancing.RebalancingFrequency(index['rebalancingFrequency'])
+            rebalancing_week_day = rebalancing.WeekDay(index['rebalancingWeekDay'])
+            rebalancing_side = rebalancing.RebalancingSide(index['rebalancingSide'])
+            index_rule = rebalancing.RebalancingRule(rebalancing_frequency, rebalancing_week_day, rebalancing_side)
+            previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
+
+            logging.info('loading number of shares data as of %s', previous_rebalancing_day)
+
+            bucket = s3.Bucket('index-factory-daily-prices-bucket')
+            prices_data = io.BytesIO()
+            bucket.download_fileobj(Key=event_file_name, Fileobj=prices_data)
+            prices = prices_data.getvalue().decode('utf-8')
+            logging.info('processing prices: %s', prices)
+            
             # compute weightings as of date
             # compute index value
             pass

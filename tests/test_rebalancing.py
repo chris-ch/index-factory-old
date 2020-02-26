@@ -2,6 +2,7 @@
 import unittest
 import os
 from datetime import date
+from enum import Enum
 
 from indices import parse_daily_prices, LoaderDecimalCSV
 from rebalancing import first_last_weekday_month, first_last_weekday_quarter, is_rebalancing_day, get_rebalancing_day_next, get_rebalancing_day_previous
@@ -18,6 +19,15 @@ class TestRebalancing(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_weekdays(self):
+        self.assertEqual(0, WeekDay.MONDAY.position)
+        self.assertEqual(1, WeekDay.TUESDAY.position)
+        self.assertEqual(2, WeekDay.WEDNESDAY.position)
+        self.assertEqual(3, WeekDay.THURSDAY.position)
+        self.assertEqual(4, WeekDay.FRIDAY.position)
+        self.assertEqual(5, WeekDay.SATURDAY.position)
+        self.assertEqual(6, WeekDay.SUNDAY.position)
 
     def test_first_last_weekday(self):
         first, last = first_last_weekday_month(2020, 2)
