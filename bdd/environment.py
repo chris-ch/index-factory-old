@@ -2,8 +2,19 @@ import logging
 import sys
 import os
 import pexpect
+from awscli import clidriver
 
 _child = None
+
+def before_scenario(context, scenario):
+    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
+            's3', 'rm',
+            's3://index-factory-daily-prices-bucket',
+            '--recursive'
+            ]
+
+    status = clidriver.create_clidriver().main(args)
+    assert status == 0
 
 def before_all(context):
     context.config.setup_logging()
