@@ -211,6 +211,7 @@ def handle_daily_prices(event, context) -> int:
 
             bucket = s3.Bucket('index-factory-daily-prices-bucket')
             prices_data = io.BytesIO()
+            logging.info('downloading file from S3: %s', str(event_file_name))
             bucket.download_fileobj(Key=event_file_name, Fileobj=prices_data)
             prices = prices_data.getvalue().decode('utf-8')
             logging.info('processing prices: %s', prices)

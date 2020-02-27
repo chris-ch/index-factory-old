@@ -1,4 +1,6 @@
 import os
+from typing import Iterable, List
+
 import requests
 import logging
 import json
@@ -6,13 +8,32 @@ from behave import given, when, then
 from awscli import clidriver
 
 
+def endpoint_aws() -> str:
+    return os.environ['AWS_ENDPOINT_S3'] 
+
+
+def endpoint_serverless(uri='') -> str:
+    return '{endpoint}{uri}'.format(endpoint=os.environ['AWS_ENDPOINT_SERVERLESS'], uri=uri)
+
+
+def awscli(args: List[str]) -> int:
+    pre_args = [
+        # '--debug',
+        '--endpoint',
+        endpoint_aws()
+    ]
+    status = clidriver.create_clidriver().main(pre_args + args)
+    return status
+
+
 @given('we have a local serverless instance running')
 def step_impl(context):
-    result = requests.get('http://127.0.0.1:3000')
+    result = requests.get(endpoint_serverless())
     assert result.status_code == 200
 
 
-@when('we define a new index {index_name} ({index_code}) starting on {year}-{month}-{day} depending on markets {markets}')
+@when('we define a new index {index_name} ({index_code}) starting on {year}-{month}-{day} depending on markets {'
+      'markets}')
 def step_impl(context, index_name, index_code, year, month, day, markets):
     index_data = {
         'name': index_name,
@@ -25,53 +46,50 @@ def step_impl(context, index_name, index_code, year, month, day, markets):
     }
     index_json = json.dumps(index_data)
     logging.info('json: %s', index_json)
-    response = requests.post('http://127.0.0.1:3000/indices', json=index_json)
+    response = requests.post(endpoint_serverless('/indices'), json=index_json)
     result = json.loads(response.text)
     assert result['indexCode'] == index_code
 
 
 @when('we upload a CSV file with daily prices as of {year}-{month}-{day} for market {market}')
-def step_impl(context, market, year, month, day):
+def step_impl(context, year, month, day, market):
 
-    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
-            's3api', 'put-object', 
+    args = ['s3api', 'put-object',
             '--bucket', 'index-factory-daily-prices-bucket',
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
-    status = clidriver.create_clidriver().main(args)
+    status = awscli(args)
     assert status == 0
 
 
 @when('we upload a CSV file with number of shares as of {year}-{month}-{day} for market {market}')
-def step_impl(context, market, year, month, day):
+def step_impl(context, year, month, day, market):
 
-    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
-            's3api', 'put-object', 
+    args = ['s3api', 'put-object',
             '--bucket', 'index-factory-number-of-shares-bucket',
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_NOSH_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
-    status = clidriver.create_clidriver().main(args)
+    status = awscli(args)
     assert status == 0
 
 
 @when('we upload a CSV file with dividends as of {year}-{month}-{day} for market {market}')
-def step_impl(context, market, year, month, day):
+def step_impl(context, year, month, day, market):
     
-    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
-            's3api', 'put-object', 
+    args = ['s3api', 'put-object',
             '--bucket', 'index-factory-dividends-bucket',
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_DIVIDENDS_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
-    status = clidriver.create_clidriver().main(args)
+    status = awscli(args)
     assert status == 0
 
 
 @then('querying indices for market {market} returns "{indices}"')
 def step_impl(context, market, indices):
-    url = "http://localhost:3000/markets/{}".format(market)
+    url = endpoint_serverless('/markets/{}'.format(market))
     response = requests.request('GET', url)
     json_response = json.loads(response.text)
     logging.info('indices for market %s response: %s', market, str(json_response))
@@ -84,13 +102,13 @@ def step_impl(context, market, indices):
 def step_impl(context, index_code, index_value):
     assert False
 
+
 @then(u'we have got {count} files for {year}-{month} for market {market_code}')
 def step_impl(context, count, year, month, market_code):
-    args = ['--debug', '--endpoint', 'http://127.0.0.1:8001',
-            's3api', 'list-objects-v2', 
+    args = ['s3api', 'list-objects-v2',
             '--bucket', 'index-factory-daily-prices-bucket',
             '--prefix', '{market}/{year}/{month}'.format(market=market_code, year=year, month=month)
             ]
 
-    status = clidriver.create_clidriver().main(args)
+    status = awscli(args)
     assert status == 0
