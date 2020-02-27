@@ -1,10 +1,38 @@
 import logging
-import sys
 import os
+import json
+from io import StringIO
+from typing import List, Tuple
+import mock
 import pexpect
 from awscli import clidriver
 
 _child = None
+
+
+def endpoint_aws_dynamodb() -> str:
+    return os.environ['AWS_ENDPOINT_DYNAMODB']
+
+
+def endpoint_serverless(uri='') -> str:
+    return '{endpoint}{uri}'.format(endpoint=os.environ['AWS_ENDPOINT_SERVERLESS'], uri=uri)
+
+
+def awscli(args: List[str]) -> Tuple[int, str]:
+    pre_args = [
+        # '--debug',
+        '--endpoint',
+        endpoint_aws_dynamodb()
+    ]
+    output = StringIO()
+    stdout_patch = mock.patch('sys.stdout', output)
+    stdout_patch.start()
+    driver = clidriver.create_clidriver()
+    status = driver.main(pre_args + args)
+    logs = output.getvalue()
+    output.close()
+    stdout_patch.stop()
+    return status, logs
 
 
 def clear_bucket(bucket_name: str) -> int:
@@ -20,22 +48,26 @@ def clear_bucket(bucket_name: str) -> int:
 
 def clear_table(table_name: str) -> int:
     logging.info('cleaning up DynamoDB table: {}'.format(table_name))
-    # aws    foobar
-    args = ['--endpoint', os.environ['AWS_ENDPOINT_DYNAMODB'],
-            'dynamodb', 'describe-table',
-            '--table-name', table_name
-            ]
-    status = clidriver.create_clidriver().main(args)
+    scan_args = ['dynamodb', 'scan', '--table-name', table_name]
+    status, output_scan = awscli(scan_args)
+    table_description = json.loads(output_scan)
+    items = table_description['Items']
+    for item in items:
+        logging.info('parsing output: "%s"', item)
+        item_key = json.dumps({'partitionKey': item['partitionKey'], 'sortKey': item['sortKey']})
+        delete_args = ['dynamodb', 'delete-item', '--table-name', table_name, '--key', item_key]
+        status, output_delete = awscli(delete_args)
+
     return status
 
 
 def before_scenario(context, scenario):
-    status = clear_bucket(os.environ['S3_BUCKET_DAILY_PRICES'])
-    assert status == 0
-    status = clear_bucket(os.environ['S3_BUCKET_NUMBER_OF_SHARES'])
-    assert status == 0
-    status = clear_bucket(os.environ['S3_BUCKET_DIVIDENDS'])
-    assert status == 0
+    #status = clear_bucket(os.environ['S3_BUCKET_DAILY_PRICES'])
+    #assert status == 0
+    #status = clear_bucket(os.environ['S3_BUCKET_NUMBER_OF_SHARES'])
+    #assert status == 0
+    #status = clear_bucket(os.environ['S3_BUCKET_DIVIDENDS'])
+    #assert status == 0
     clear_table('index-factory-table-local')
 
 def before_all(context):

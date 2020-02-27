@@ -1,5 +1,6 @@
 import os
-from typing import Iterable, List
+from io import StringIO
+from typing import Iterable, List, Tuple
 
 import requests
 import logging
@@ -8,7 +9,7 @@ from behave import given, when, then
 from awscli import clidriver
 
 
-def endpoint_aws() -> str:
+def endpoint_aws_s3() -> str:
     return os.environ['AWS_ENDPOINT_S3'] 
 
 
@@ -16,14 +17,18 @@ def endpoint_serverless(uri='') -> str:
     return '{endpoint}{uri}'.format(endpoint=os.environ['AWS_ENDPOINT_SERVERLESS'], uri=uri)
 
 
-def awscli(args: List[str]) -> int:
+def awsclis3(args: List[str]) -> Tuple[int, str]:
     pre_args = [
         # '--debug',
         '--endpoint',
-        endpoint_aws()
+        endpoint_aws_s3()
     ]
-    status = clidriver.create_clidriver().main(pre_args + args)
-    return status
+    output = StringIO()
+    driver = clidriver.create_clidriver(out_stream=output)
+    status = driver.main(pre_args + args)
+    event_emitter = driver.session.get_component('event_emitter')
+    logging.info('emitter: %s' % dir(event_emitter))
+    return status, output.getvalue()
 
 
 @given('we have a local serverless instance running')
@@ -59,7 +64,7 @@ def step_impl(context, year, month, day, market):
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
-    status = awscli(args)
+    status = awsclis3(args)
     assert status == 0
 
 
@@ -71,7 +76,7 @@ def step_impl(context, year, month, day, market):
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_NOSH_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
-    status = awscli(args)
+    status = awsclis3(args)
     assert status == 0
 
 
@@ -83,7 +88,7 @@ def step_impl(context, year, month, day, market):
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_DIVIDENDS_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
-    status = awscli(args)
+    status = awsclis3(args)
     assert status == 0
 
 
@@ -110,5 +115,10 @@ def step_impl(context, count, year, month, market_code):
             '--prefix', '{market}/{year}/{month}'.format(market=market_code, year=year, month=month)
             ]
 
-    status = awscli(args)
+    status = awsclis3(args)
     assert status == 0
+
+
+@then(u'we do nothing')
+def step_impl(context):
+    pass
