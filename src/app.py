@@ -12,7 +12,6 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr, BeginsWith
 import flask
 
-
 __LOGGER = logging.getLogger()
 __LOGGER.setLevel(logging.INFO)
 INDEX_FACTORY_TABLE = os.environ['INDEX_FACTORY_TABLE']
@@ -177,11 +176,9 @@ def handle_daily_prices(event, context) -> int:
     """
     This function is triggered everytime a new price file is available.
     """
-    logging.info('****** daily prices triggered with s3 *******')
-    import sys
-    logging.info('PATH: %s', str(sys.path))
-    logging.info('CWD: %s', os.getcwd())
+    # TODO find out a way to import at module level
     from . import rebalancing
+    logging.info('****** daily prices triggered with s3 *******')
     for record in event['Records']:
         logging.info('record: %s', str(record))
         logging.info('processing file %s', record['s3']['object']['key'])
@@ -192,7 +189,7 @@ def handle_daily_prices(event, context) -> int:
         year = date_yyyymmdd[:4]
         month = date_yyyymmdd[4:6]
         day = date_yyyymmdd[6:8]
-        logging.info('as of date: %s-%s-%s', year, month, day)
+        logging.info('prices as of date: %s-%s-%s', year, month, day)
         file_date = date(int(year), int(month), int(day))
         
         impacted_indices = load_market_indices(market_code)
@@ -207,7 +204,7 @@ def handle_daily_prices(event, context) -> int:
             index_rule = rebalancing.RebalancingRule(rebalancing_frequency, rebalancing_week_day, rebalancing_side)
             previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
 
-            logging.info('loading number of shares data as of %s', previous_rebalancing_day)
+            logging.info('loading prices data as of %s', previous_rebalancing_day)
 
             bucket = s3.Bucket('index-factory-daily-prices-bucket')
             prices_data = io.BytesIO()
@@ -216,6 +213,8 @@ def handle_daily_prices(event, context) -> int:
             prices = prices_data.getvalue().decode('utf-8')
             logging.info('processing prices: %s', prices)
             
+            # finding number of shares as of rebalancing date from market details
+
             # compute weightings as of date
             # compute index value
             pass
@@ -230,6 +229,20 @@ def handle_number_of_shares(event, context) -> int:
     logging.info('****** number of shares triggered with s3 *******')
     logging.info('event: %s', str(event))
     logging.info('context: %s', str(context))
+    # Updates market details with availability of number of shares dates
+    for record in event['Records']:
+        logging.info('record: %s', str(record))
+        logging.info('processing file %s', record['s3']['object']['key'])
+        event_file_name = record['s3']['object']['key']
+        filename = event_file_name.split('/')[-1][:-4]
+        logging.info('number of shares filename: %s', filename)
+        market_code, date_yyyymmdd = filename.split('_')
+        year = date_yyyymmdd[:4]
+        month = date_yyyymmdd[4:6]
+        day = date_yyyymmdd[6:8]
+        logging.info('number of shares as of date: %s-%s-%s', year, month, day)
+        file_date = date(int(year), int(month), int(day))
+        # storing number of shares date into relevant market details
     return 0
 
 
