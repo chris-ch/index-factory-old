@@ -14,6 +14,7 @@ import flask
 
 __LOGGER = logging.getLogger()
 __LOGGER.setLevel(logging.INFO)
+
 INDEX_FACTORY_TABLE = os.environ['INDEX_FACTORY_TABLE']
 IS_OFFLINE = os.environ.get('IS_OFFLINE')
 
@@ -59,35 +60,79 @@ def hello():
     return "Hello World!"
 
 
-def make_index_partition_key(index_code):
+def make_index_details_partition_key(index_code: str) -> str:
     """
-    Partition key for index.
+    Partition key for index details.
     """
     return 'index#' + index_code
 
 
-def make_index_details_sort_key(index_code, markets):
+def make_index_details_sort_key(index_code: str, markets: str) -> str:
     """
     Sort key for index details.
     """
     return 'index-details#{}#{}'.format(index_code, '@' + '@'.join(markets) + '@')
 
 
+def make_market_details_partition_key(index_code: str) -> str:
+    """
+    Partition key for market details.
+    """
+    return 'market#{}'.format(index_code)
+
+
+def make_market_details_sort_key(market_code: str) -> str:
+    """
+    Sort key for market details.
+    """
+    return 'market-details#{}'.format(market_code)
+
+
 @handler.route("/indices/<string:index_code>")
-def get_index(index_code):
+def get_index(index_code: str):
     """
     Getting an index.
     """
     table = db.Table(INDEX_FACTORY_TABLE)
     resp = table.get_item(
         Key={
-            'partitionKey': make_index_partition_key(index_code),
-            'sortKey': BeginsWith(make_index_details_sort_key(index_code, ''))
+            'partitionKey': make_index_details_partition_key(index_code),
+            'sortKey': make_index_details_sort_key(index_code, '')
         }
     )
     item = resp.get('Item')
     if not item:
-        return flask.jsonify({'error': 'Index does not exist'}), 404
+        return flask.jsonify({'error': 'Index not found'}), 404
+
+    __LOGGER.info('found item: %s', str(item))
+    return flask.jsonify(item)
+
+
+def load_market(market_code: str):
+    logging.info('loading market details %s', market_code)
+    partition_key = make_market_details_partition_key(market_code)
+    sort_key = make_market_details_sort_key(market_code)
+    key = {'partitionKey': partition_key, 'sortKey': sort_key}
+    table = db.Table(INDEX_FACTORY_TABLE)
+    resp = table.get_item(Key=key)
+    item = resp.get('Item')
+    if item == None:
+        item = key
+    
+    if 'dates_number_of_shares' not in item:
+        item['dates_number_of_shares'] = []
+
+    return item
+
+
+@handler.route("/markets/<string:market_code>/nosh")
+def get_market(market_code: str):
+    """
+    Getting market details.
+    """
+    item = load_market(market_code)
+    if not item:
+        return flask.jsonify({'error': 'Market code not found'}), 404
 
     __LOGGER.info('found item: %s', str(item))
     return flask.jsonify(item)
@@ -118,7 +163,7 @@ def create_index():
 
     table = db.Table(INDEX_FACTORY_TABLE)
     index_data = {key: value for key, value in flask.request.json.items()}
-    index_data['partitionKey'] = make_index_partition_key(index_code)
+    index_data['partitionKey'] = make_index_details_partition_key(index_code)
     index_data['sortKey'] = make_index_details_sort_key(index_code, markets)
     logging.info('saving index: %s', str(index_data))
     table.put_item(Item=index_data)
@@ -214,7 +259,8 @@ def handle_daily_prices(event, context) -> int:
             logging.info('processing prices: %s', prices)
             
             # finding number of shares as of rebalancing date from market details
-
+            market_details = get_market(market_code)
+            logging.info('found market details: %s', market_details)
             # compute weightings as of date
             # compute index value
             pass
@@ -229,7 +275,6 @@ def handle_number_of_shares(event, context) -> int:
     logging.info('****** number of shares triggered with s3 *******')
     logging.info('event: %s', str(event))
     logging.info('context: %s', str(context))
-    # Updates market details with availability of number of shares dates
     for record in event['Records']:
         logging.info('record: %s', str(record))
         logging.info('processing file %s', record['s3']['object']['key'])
@@ -237,12 +282,17 @@ def handle_number_of_shares(event, context) -> int:
         filename = event_file_name.split('/')[-1][:-4]
         logging.info('number of shares filename: %s', filename)
         market_code, date_yyyymmdd = filename.split('_')
-        year = date_yyyymmdd[:4]
-        month = date_yyyymmdd[4:6]
-        day = date_yyyymmdd[6:8]
-        logging.info('number of shares as of date: %s-%s-%s', year, month, day)
-        file_date = date(int(year), int(month), int(day))
-        # storing number of shares date into relevant market details
+        market_details = load_market(market_code)
+        logging.info('loaded market details: %s', market_details)
+
+        if 'dates_number_of_shares' not in market_details:
+            market_details['dates_number_of_shares'] = []
+
+        market_details['dates_number_of_shares'].append(date_yyyymmdd)
+        
+        table = db.Table(INDEX_FACTORY_TABLE)
+        table.put_item(Item=market_details)
+
     return 0
 
 

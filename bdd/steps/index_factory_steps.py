@@ -116,6 +116,15 @@ def step_impl(context, count, year, month, market_code):
     assert status == 0
 
 
+@then(u'the market {market_code} has number of shares dates')
+def step_impl(context, market_code):
+    assert context.table, "table<dates> is required"
+    logging.info('parsing dates: %s', [row['as_of_date'] for row in context.table])
+    url = endpoint_serverless('/markets/{}/nosh'.format(market_code))
+    response = requests.request('GET', url)
+    json_response = json.loads(response.text)
+    logging.info('received market nosh: %s', json_response)
+
 @then(u'we do nothing')
 def step_impl(context):
     pass
