@@ -23,12 +23,9 @@ def awsclis3(args: List[str]) -> Tuple[int, str]:
         '--endpoint',
         endpoint_aws_s3()
     ]
-    output = StringIO()
-    driver = clidriver.create_clidriver(out_stream=output)
+    driver = clidriver.create_clidriver()
     status = driver.main(pre_args + args)
-    event_emitter = driver.session.get_component('event_emitter')
-    logging.info('emitter: %s' % dir(event_emitter))
-    return status, output.getvalue()
+    return status
 
 
 @given('we have a local serverless instance running')
