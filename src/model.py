@@ -50,11 +50,18 @@ def make_market_details_partition_key(index_code: str) -> str:
     return 'market#{}'.format(index_code)
 
 
-def make_market_details_sort_key(market_code: str) -> str:
+def make_market_details_nosh_sort_key(market_code: str) -> str:
     """
-    Sort key for market details.
+    Sort key for market details number of shares.
     """
-    return 'market-details#{}'.format(market_code)
+    return 'market-details#nosh#{}'.format(market_code)
+
+
+def make_market_details_prices_sort_key(market_code: str) -> str:
+    """
+    Sort key for market details prices.
+    """
+    return 'market-details#prices#{}'.format(market_code)
 
 
 def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
@@ -76,10 +83,10 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
     return data
 
 
-def load_market(market_code: str):
+def load_market_number_of_shares(market_code: str):
     logging.info('loading market details %s', market_code)
     partition_key = make_market_details_partition_key(market_code)
-    sort_key = make_market_details_sort_key(market_code)
+    sort_key = make_market_details_nosh_sort_key(market_code)
     key = {'partitionKey': partition_key, 'sortKey': sort_key}
     table = db.Table(INDEX_FACTORY_TABLE)
     resp = table.get_item(Key=key)

@@ -73,8 +73,12 @@ def handle_daily_prices(event, context) -> int:
             logging.info('processing prices: %s', prices)
             
             # finding number of shares as of rebalancing date from market details
-            market_details = model.load_market_indices(market_code)
+            market_details = model.load_market_number_of_shares(market_code)
             logging.info('found market details: %s', market_details)
+            dates_number_of_shares = market_details['dates_number_of_shares']
+            logging.info('comparing to %s', previous_rebalancing_day.isoformat().replace('-', ''))
+            number_of_shares_day_previous_rebalancing = max([day for day in dates_number_of_shares if day <= previous_rebalancing_day.isoformat().replace('-', '')])
+            logging.info('number_of_shares_day_previous_rebalancing: %s', number_of_shares_day_previous_rebalancing)
             # compute weightings as of date
             # compute index value
             pass
@@ -97,7 +101,7 @@ def handle_number_of_shares(event, context) -> int:
         filename = event_file_name.split('/')[-1][:-4]
         logging.info('number of shares filename: %s', filename)
         market_code, date_yyyymmdd = filename.split('_')
-        market_details = model.load_market(market_code)
+        market_details = model.load_market_number_of_shares(market_code)
         logging.info('loaded market details: %s', market_details)
 
         if 'dates_number_of_shares' not in market_details:

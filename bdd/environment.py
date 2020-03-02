@@ -62,12 +62,12 @@ def clear_table(table_name: str) -> int:
 
 
 def before_scenario(context, scenario):
-    #status = clear_bucket(os.environ['S3_BUCKET_DAILY_PRICES'])
-    #assert status == 0
-    #status = clear_bucket(os.environ['S3_BUCKET_NUMBER_OF_SHARES'])
-    #assert status == 0
-    #status = clear_bucket(os.environ['S3_BUCKET_DIVIDENDS'])
-    #assert status == 0
+    status = clear_bucket(os.environ['S3_BUCKET_DAILY_PRICES'])
+    assert status == 0
+    status = clear_bucket(os.environ['S3_BUCKET_NUMBER_OF_SHARES'])
+    assert status == 0
+    status = clear_bucket(os.environ['S3_BUCKET_DIVIDENDS'])
+    assert status == 0
     clear_table('index-factory-table-local')
 
 def before_all(context):
