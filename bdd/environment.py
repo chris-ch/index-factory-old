@@ -79,9 +79,9 @@ def before_all(context):
     os.environ['AWS_ENDPOINT_SERVERLESS'] = 'http://127.0.0.1:3000'
     os.environ['AWS_ENDPOINT_S3'] = 'http://127.0.0.1:8001'
     os.environ['AWS_ENDPOINT_DYNAMODB'] = 'http://127.0.0.1:8000'
-    os.environ['S3_BUCKET_DAILY_PRICES'] = 'index-factory-daily-prices-bucket'
-    os.environ['S3_BUCKET_NUMBER_OF_SHARES'] = 'index-factory-number-of-shares-bucket'
-    os.environ['S3_BUCKET_DIVIDENDS'] = 'index-factory-dividends-bucket'
+    os.environ['S3_BUCKET_DAILY_PRICES'] = 'index-factory-daily-prices-bucket-local'
+    os.environ['S3_BUCKET_NUMBER_OF_SHARES'] = 'index-factory-number-of-shares-bucket-local'
+    os.environ['S3_BUCKET_DIVIDENDS'] = 'index-factory-dividends-bucket-local'
 
 
 def Xbefore_feature(context, feature):

@@ -1,13 +1,17 @@
+import io
 from typing import Iterable, Dict
 import logging
 import os
 import boto3
-from boto3.dynamodb.conditions import Key, Attr, BeginsWith
+from boto3.dynamodb.conditions import Key, Attr
 
 __LOGGER = logging.getLogger()
 __LOGGER.setLevel(logging.INFO)
 
 INDEX_FACTORY_TABLE = os.environ['INDEX_FACTORY_TABLE']
+BUCKET_DAILY_PRICES = os.environ['BUCKET_DAILY_PRICES']
+BUCKET_DIVIDENDS = os.environ['BUCKET_DIVIDENDS']
+BUCKET_NUMBER_OF_SHARES = os.environ['BUCKET_NUMBER_OF_SHARES']
 IS_OFFLINE = os.environ.get('IS_OFFLINE')
 
 if IS_OFFLINE:
@@ -83,7 +87,7 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
     return data
 
 
-def load_market_number_of_shares(market_code: str):
+def load_market_number_of_shares_dates(market_code: str):
     logging.info('loading market details %s', market_code)
     partition_key = make_market_details_partition_key(market_code)
     sort_key = make_market_details_nosh_sort_key(market_code)
@@ -138,3 +142,22 @@ def scan_indices():
             data.append({key: value for key, value in row.items()})
 
     return data
+
+
+def load_number_of_shares(market_code: str, year: int, month: int, day: int):
+    bucket = s3.Bucket(BUCKET_NUMBER_OF_SHARES)
+    key = '%s/%d/%02d/%s_%d%02d%02d.csv' % (market_code, year, month, market_code, year, month, day)
+    data = io.BytesIO()
+    logging.info('downloading file from S3: %s', str(key))
+    bucket.download_fileobj(Key=key, Fileobj=data)
+    lines = [line.strip().split(',') for line in data.getvalue().decode('utf-8').split()[1:]]
+    return dict([(line[0], line[-1]) for line in lines])
+
+
+def load_prices(prices_filename):
+    bucket = s3.Bucket(BUCKET_DAILY_PRICES)
+    prices_data = io.BytesIO()
+    logging.info('downloading file from S3: %s', str(prices_filename))
+    bucket.download_fileobj(Key=prices_filename, Fileobj=prices_data)
+    lines = [line.strip().split(',') for line in prices_data.getvalue().decode('utf-8').split()[1:]]
+    return dict([(line[0], line[-2]) for line in lines])

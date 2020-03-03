@@ -1,6 +1,5 @@
 import os
-from io import StringIO
-from typing import Iterable, List, Tuple
+from typing import List, Tuple
 
 import requests
 import logging
@@ -57,7 +56,7 @@ def step_impl(context, index_name, index_code, year, month, day, markets):
 def step_impl(context, year, month, day, market):
 
     args = ['s3api', 'put-object',
-            '--bucket', 'index-factory-daily-prices-bucket',
+            '--bucket', os.environ['S3_BUCKET_DAILY_PRICES'],
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
@@ -69,7 +68,7 @@ def step_impl(context, year, month, day, market):
 def step_impl(context, year, month, day, market):
 
     args = ['s3api', 'put-object',
-            '--bucket', 'index-factory-number-of-shares-bucket',
+            '--bucket', os.environ['S3_BUCKET_NUMBER_OF_SHARES'],
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_NOSH_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
@@ -81,7 +80,7 @@ def step_impl(context, year, month, day, market):
 def step_impl(context, year, month, day, market):
     
     args = ['s3api', 'put-object',
-            '--bucket', 'index-factory-dividends-bucket',
+            '--bucket', os.environ['S3_BUCKET_DIVIDENDS'],
             '--key', '{market}/{year}/{month}/{market}_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day),
             '--body', 'resources/fake-data/{market}_DIVIDENDS_{year}{month}{day}.csv'.format(market=market, year=year, month=month, day=day)]
 
@@ -108,7 +107,7 @@ def step_impl(context, index_code, index_value):
 @then(u'we have got {count} files for {year}-{month} for market {market_code}')
 def step_impl(context, count, year, month, market_code):
     args = ['s3api', 'list-objects-v2',
-            '--bucket', 'index-factory-daily-prices-bucket',
+            '--bucket', os.environ['S3_BUCKET_DAILY_PRICES'],
             '--prefix', '{market}/{year}/{month}'.format(market=market_code, year=year, month=month)
             ]
 
@@ -124,6 +123,7 @@ def step_impl(context, market_code):
     response = requests.request('GET', url)
     json_response = json.loads(response.text)
     logging.info('received market nosh: %s', json_response)
+
 
 @then(u'we do nothing')
 def step_impl(context):

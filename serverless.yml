@@ -4,6 +4,9 @@ frameworkVersion: ">=1.1.0 <2.0.0"
 
 custom:
   tableName: 'index-factory-table-${self:provider.stage}'
+  bucketNumberOfShares: 'index-factory-number-of-shares-bucket-${self:provider.stage}'
+  bucketDailyPrices: 'index-factory-daily-prices-bucket-${self:provider.stage}'
+  bucketDividends: 'index-factory-dividends-bucket-${self:provider.stage}'
 
   wsgi:
     app: src/app.handler
@@ -39,6 +42,9 @@ provider:
 
   environment:
     INDEX_FACTORY_TABLE: ${self:custom.tableName}
+    BUCKET_NUMBER_OF_SHARES: ${self:custom.bucketNumberOfShares}
+    BUCKET_DAILY_PRICES: ${self:custom.bucketDailyPrices}
+    BUCKET_DIVIDENDS: ${self:custom.bucketDividends}
 
 functions:
   app:
@@ -56,21 +62,21 @@ functions:
   handleDailyPrices:
     handler: src/trigger.handle_daily_prices
     events:
-      - s3: index-factory-daily-prices-bucket
+      - s3: ${self:custom.bucketDailyPrices}
         events:
           - s3:ObjectCreated:Put
 
   handleNumberOfShares:
     handler: src/trigger.handle_number_of_shares
     events:
-      - s3: index-factory-number-of-shares-bucket
+      - s3: ${self:custom.bucketNumberOfShares}
         events:
           - s3:ObjectCreated:Put
 
   handleDividends:
     handler: src/trigger.handle_dividends
     events:
-      - s3: index-factory-dividends-bucket
+      - s3: ${self:custom.bucketDividends}
         events:
           - s3:ObjectCreated:Put
 
@@ -113,17 +119,17 @@ resources:
     IndexFactoryDailyPricesS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: index-factory-daily-prices-bucket
+        BucketName: ${self:custom.bucketDailyPrices}
 
     IndexFactoryNumberOfSharesS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: index-factory-number-of-shares-bucket
+        BucketName: ${self:custom.bucketNumberOfShares}
 
     IndexFactoryDividendsS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: index-factory-dividends-bucket
+        BucketName: ${self:custom.bucketDividends}
 
     CognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient

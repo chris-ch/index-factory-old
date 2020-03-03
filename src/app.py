@@ -52,7 +52,7 @@ def get_market(market_code: str):
     """
     Getting market details.
     """
-    item = model.load_market_number_of_shares(market_code)
+    item = model.load_market_number_of_shares_dates(market_code)
     if not item:
         return flask.jsonify({'error': 'Market code not found'}), 404
 
