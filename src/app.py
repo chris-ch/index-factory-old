@@ -80,8 +80,8 @@ def create_index():
     name = flask.request.json.get('name')
     start_date = flask.request.json.get('startDate')
     markets = flask.request.json.get('markets')
-    if not index_code or not name or not start_date or not markets:
-        return flask.jsonify({'error': 'Please provide indexCode, name, startDate and markets'}), 400
+    if not index_code or not name or not markets:
+        return flask.jsonify({'error': 'Please provide indexCode, name and markets'}), 400
 
     index_data = {key: value for key, value in flask.request.json.items()}
     model.save_index(index_code, markets, index_data)

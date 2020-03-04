@@ -33,13 +33,12 @@ def step_impl(context):
     assert result.status_code == 200
 
 
-@when('we define a new index {index_name} ({index_code}) starting on {year}-{month}-{day} depending on markets {'
+@when('we define a new index {index_name} ({index_code}) depending on markets {'
       'markets}')
-def step_impl(context, index_name, index_code, year, month, day, markets):
+def step_impl(context, index_name, index_code, markets):
     index_data = {
         'name': index_name,
         'indexCode': index_code,
-        'startDate': '%d%02d%02d' % (int(year), int(month), int(day)),
         'markets': markets.split(','),
         'rebalancingFrequency': 'monthly',
         'rebalancingWeekDay': 'tuesday',

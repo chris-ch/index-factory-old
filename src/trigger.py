@@ -59,7 +59,7 @@ def handle_daily_prices(event, context) -> int:
             table = db.Table(INDEX_FACTORY_TABLE)
             table.put_item(Item=market_details)
 
-        if len(market_details['dates_daily_prices']) >= 2:
+        if len(market_details['dates_daily_prices']) > 0:
             update_indices(market_code, year, month, day, filename, event_file_name)
 
     return 0
@@ -81,8 +81,6 @@ def update_indices(market_code, year, month, day, filename, event_file_name):
         index_rule = rebalancing.RebalancingRule(rebalancing_frequency, rebalancing_week_day, rebalancing_side)
         previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
 
-        logging.info('loading prices data as of %s', previous_rebalancing_day)
-
         prices = model.load_prices(event_file_name)
         logging.info('processing prices: %s', prices)
 
@@ -97,11 +95,27 @@ def update_indices(market_code, year, month, day, filename, event_file_name):
         nosh_year, nosh_month, nosh_day = parse_yyyymmdd(number_of_shares_day_previous_rebalancing)
         logging.info('number_of_shares_day_previous_rebalancing: %s', number_of_shares_day_previous_rebalancing)
         shares_data = model.load_number_of_shares(market_code, nosh_year, nosh_month, nosh_day)
-        logging.info('loaded number of shares: %s', shares_data)
+        logging.info('loaded number of shares from previous rebalancing day: %s', shares_data)
 
-        # compute weightings as of date
+        # computes market value as of date
+        market_values = dict()
+        for component in prices:
+            if component in shares_data:
+                number_of_shares = shares_data[component]
+                market_values[component] = float(number_of_shares) * float(prices[component])
 
-        # compute index value
+        # stores market values
+        logging.info('loaded market details for number of shares: %s', market_details)
+
+        if 'market_values' not in index:
+            index['market_values'] = dict()
+
+        date_yyyymmdd = '%d%02d%02d' % (year, month ,day)
+        if date_yyyymmdd not in index['market_values']:
+            index['market_values'][date_yyyymmdd] = market_values
+            table = db.Table(INDEX_FACTORY_TABLE)
+            table.put_item(Item=index)
+
         pass
 
 

@@ -4,7 +4,7 @@ Feature: Index Factory calculation with a straightforward methodology
 
   Scenario: Performs an index calculation
     Given we have a local serverless instance running
-     When we define a new index US Equity (us-equity) starting on 2020-01-01 depending on markets US,Canada
+     When we define a new index US Equity (us-equity) depending on markets US,Canada
      And we upload a CSV file with number of shares as of 2019-12-31 for market US
      And we upload a CSV file with daily prices as of 2020-01-31 for market US
      Then the us-equity index value is 100.0
@@ -22,7 +22,7 @@ Feature: Index Factory calculation with a straightforward methodology
 
   Scenario: Performs an index calculation including dividends
     Given we have a local serverless instance running
-     When we define a new index US Equity Div (us-equity-div) starting on 2020-01-01 depending on markets US
+     When we define a new index US Equity Div (us-equity-div) depending on markets US
      And we upload a CSV file with number of shares as of 2019-12-31 for market US
      And we upload a CSV file with daily prices as of 2020-01-31 for market US
      Then the us-equity-div index value is 100.0
