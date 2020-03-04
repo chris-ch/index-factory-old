@@ -1,7 +1,6 @@
 import logging
 from datetime import date
 import os
-import io
 from typing import Tuple
 
 import boto3
@@ -38,7 +37,6 @@ def handle_daily_prices(event, context) -> int:
     This function is triggered everytime a new price file is available.
     """
     # TODO find out a way to import at module level
-    from . import rebalancing
     from . import model
     logging.info('****** daily prices triggered with s3 *******')
     for record in event['Records']:
@@ -50,48 +48,61 @@ def handle_daily_prices(event, context) -> int:
 
         year, month, day = parse_yyyymmdd(date_yyyymmdd)
         logging.info('prices as of date: %d-%02d-%02d', year, month, day)
-        file_date = date(year, month, day)
-        
-        impacted_indices = model.load_market_indices(market_code)
-        logging.info('related indices: %s', impacted_indices)
-        for index in impacted_indices:
-            logging.info('computing index: %s', index)
 
-            logging.info('processing file: %s', filename)
-            rebalancing_frequency = rebalancing.RebalancingFrequency(index['rebalancingFrequency'])
-            rebalancing_week_day = rebalancing.WeekDay(index['rebalancingWeekDay'])
-            rebalancing_side = rebalancing.RebalancingSide(index['rebalancingSide'])
-            index_rule = rebalancing.RebalancingRule(rebalancing_frequency, rebalancing_week_day, rebalancing_side)
-            previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
+        market_details = model.load_market_daily_prices_dates(market_code)
+        logging.info('loaded market details for prices: %s', market_details)
+        if 'dates_daily_prices' not in market_details:
+            market_details['dates_daily_prices'] = []
 
-            logging.info('loading prices data as of %s', previous_rebalancing_day)
+        if date_yyyymmdd not in market_details['dates_daily_prices']:
+            market_details['dates_daily_prices'].append(date_yyyymmdd)
+            table = db.Table(INDEX_FACTORY_TABLE)
+            table.put_item(Item=market_details)
 
-            prices = model.load_prices(event_file_name)
-            logging.info('processing prices: %s', prices)
-            
-            # finding number of shares as of rebalancing date from market details
-            market_details = model.load_market_number_of_shares_dates(market_code)
-            logging.info('found market details: %s', market_details)
-            dates_number_of_shares = market_details['dates_number_of_shares']
-            logging.info('comparing to %s', previous_rebalancing_day.isoformat().replace('-', ''))
-            number_of_shares_day_previous_rebalancing = max([day for day in dates_number_of_shares if day <= previous_rebalancing_day.isoformat().replace('-', '')])
-            
-            nosh_year, nosh_month, nosh_day = parse_yyyymmdd(number_of_shares_day_previous_rebalancing)
-            logging.info('number_of_shares_day_previous_rebalancing: %s', number_of_shares_day_previous_rebalancing)
-            shares_data = model.load_number_of_shares(market_code, nosh_year, nosh_month, nosh_day)
-            logging.info('loaded number of shares: %s', shares_data)
-            # compute weightings as of date
-            # compute index value
-            pass
+        if len(market_details['dates_daily_prices']) >= 2:
+            update_indices(market_code, year, month, day, filename, event_file_name)
 
     return 0
 
 
-def parse_yyyymmdd(date_yyyymmdd: str) -> Tuple[int, int, int]:
-    year = int(date_yyyymmdd[:4])
-    month = int(date_yyyymmdd[4:6])
-    day = int(date_yyyymmdd[6:8])
-    return year, month, day
+def update_indices(market_code, year, month, day, filename, event_file_name):
+    from . import rebalancing
+    from . import model
+    file_date = date(year, month, day)
+    impacted_indices = model.load_market_indices(market_code)
+    logging.info('related indices: %s', impacted_indices)
+    for index in impacted_indices:
+        logging.info('computing index: %s', index)
+
+        logging.info('processing file: %s', filename)
+        rebalancing_frequency = rebalancing.RebalancingFrequency(index['rebalancingFrequency'])
+        rebalancing_week_day = rebalancing.WeekDay(index['rebalancingWeekDay'])
+        rebalancing_side = rebalancing.RebalancingSide(index['rebalancingSide'])
+        index_rule = rebalancing.RebalancingRule(rebalancing_frequency, rebalancing_week_day, rebalancing_side)
+        previous_rebalancing_day = rebalancing.get_rebalancing_day_previous(file_date, rule=index_rule)
+
+        logging.info('loading prices data as of %s', previous_rebalancing_day)
+
+        prices = model.load_prices(event_file_name)
+        logging.info('processing prices: %s', prices)
+
+        # finding number of shares as of rebalancing date from market details
+        market_details = model.load_market_number_of_shares_dates(market_code)
+        logging.info('found market details for number of shares: %s', market_details)
+        dates_number_of_shares = market_details['dates_number_of_shares']
+        logging.info('comparing to %s', previous_rebalancing_day.isoformat().replace('-', ''))
+        number_of_shares_day_previous_rebalancing = max(
+            [day for day in dates_number_of_shares if day <= previous_rebalancing_day.isoformat().replace('-', '')])
+
+        nosh_year, nosh_month, nosh_day = parse_yyyymmdd(number_of_shares_day_previous_rebalancing)
+        logging.info('number_of_shares_day_previous_rebalancing: %s', number_of_shares_day_previous_rebalancing)
+        shares_data = model.load_number_of_shares(market_code, nosh_year, nosh_month, nosh_day)
+        logging.info('loaded number of shares: %s', shares_data)
+
+        # compute weightings as of date
+
+        # compute index value
+        pass
 
 
 def handle_number_of_shares(event, context) -> int:
@@ -110,7 +121,7 @@ def handle_number_of_shares(event, context) -> int:
         logging.info('number of shares filename: %s', filename)
         market_code, date_yyyymmdd = filename.split('_')
         market_details = model.load_market_number_of_shares_dates(market_code)
-        logging.info('loaded market details: %s', market_details)
+        logging.info('loaded market details for number of shares: %s', market_details)
 
         if 'dates_number_of_shares' not in market_details:
             market_details['dates_number_of_shares'] = []
@@ -131,3 +142,10 @@ def handle_dividends(event, context) -> int:
     logging.info('event: %s', str(event))
     logging.info('context: %s', str(context))
     return 0
+
+
+def parse_yyyymmdd(date_yyyymmdd: str) -> Tuple[int, int, int]:
+    year = int(date_yyyymmdd[:4])
+    month = int(date_yyyymmdd[4:6])
+    day = int(date_yyyymmdd[6:8])
+    return year, month, day

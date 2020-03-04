@@ -61,7 +61,7 @@ def make_market_details_nosh_sort_key(market_code: str) -> str:
     return 'market-details#nosh#{}'.format(market_code)
 
 
-def make_market_details_prices_sort_key(market_code: str) -> str:
+def make_market_details_daily_prices_sort_key(market_code: str) -> str:
     """
     Sort key for market details prices.
     """
@@ -88,7 +88,7 @@ def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
 
 
 def load_market_number_of_shares_dates(market_code: str):
-    logging.info('loading market details %s', market_code)
+    logging.info('loading market number of shares dates %s', market_code)
     partition_key = make_market_details_partition_key(market_code)
     sort_key = make_market_details_nosh_sort_key(market_code)
     key = {'partitionKey': partition_key, 'sortKey': sort_key}
@@ -102,6 +102,24 @@ def load_market_number_of_shares_dates(market_code: str):
         item['dates_number_of_shares'] = []
 
     return item
+
+
+def load_market_daily_prices_dates(market_code):
+    logging.info('loading market daily prices dates %s', market_code)
+    partition_key = make_market_details_partition_key(market_code)
+    sort_key = make_market_details_daily_prices_sort_key(market_code)
+    key = {'partitionKey': partition_key, 'sortKey': sort_key}
+    table = db.Table(INDEX_FACTORY_TABLE)
+    resp = table.get_item(Key=key)
+    item = resp.get('Item')
+    if not item:
+        item = key
+
+    if 'dates_daily_prices' not in item:
+        item['dates_daily_prices'] = []
+
+    return item
+
 
 
 def load_index(index_code):
