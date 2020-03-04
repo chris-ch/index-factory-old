@@ -1,6 +1,7 @@
 import logging
 from datetime import date
 import os
+from decimal import Decimal
 from typing import Tuple
 
 import boto3
@@ -102,7 +103,7 @@ def update_indices(market_code, year, month, day, filename, event_file_name):
         for component in prices:
             if component in shares_data:
                 number_of_shares = shares_data[component]
-                market_values[component] = float(number_of_shares) * float(prices[component])
+                market_values[component] = Decimal(number_of_shares) * Decimal(prices[component])
 
         # stores market values
         logging.info('loaded market details for number of shares: %s', market_details)
