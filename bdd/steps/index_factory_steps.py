@@ -140,12 +140,9 @@ def step_impl(context, index_code, year, month, day):
     json_response = json.loads(response.text)
     logging.info('received: %s', json_response)
     yyyymmdd = year + month + day
-    logging.info('found market values as of %s: %s', yyyymmdd, json_response['market_values'])
-    assert context.table[0]['component'] == 'A' and context.table[0]['market value'] == json_response['market_values'][yyyymmdd]['A']
-    assert context.table[1]['component'] == 'B' and context.table[1]['market value'] == '32050000'
-    assert context.table[2]['component'] == 'C' and context.table[2]['market value'] == '2320000'
-    assert context.table[3]['component'] == 'D' and context.table[3]['market value'] == '47130000'
-    assert context.table[4]['component'] == 'E' and context.table[4]['market value'] == '177890000'
+    logging.info('found market values as of %s: %s', yyyymmdd, json_response['market_values'][yyyymmdd])
+    for count in range(5):
+        assert float(context.table[count]['market value']) == float(json_response['market_values'][yyyymmdd][context.table[count]['component']])
 
 
 @then('the {index_code} index value is {index_value}')
