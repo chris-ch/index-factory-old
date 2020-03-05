@@ -78,7 +78,6 @@ def create_index():
     __LOGGER.info('receiving request: %s', str(flask.request.json))
     index_code = flask.request.json.get('indexCode')
     name = flask.request.json.get('name')
-    start_date = flask.request.json.get('startDate')
     markets = flask.request.json.get('markets')
     if not index_code or not name or not markets:
         return flask.jsonify({'error': 'Please provide indexCode, name and markets'}), 400

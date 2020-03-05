@@ -8,7 +8,7 @@ Financial Indices Factory running on AWS
 
 First install serverless globally with `npm install -g serverless`
 
-pipThen:
+Then:
 
 ```bash
 virtualenv --python=python3 venv
@@ -73,4 +73,19 @@ AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint htt
 
 ```bash
 PYTHONPATH=src python -m unittest tests/*.py
+```
+
+## DynamoDB console
+http://127.0.0.1:8000/shell/
+
+Listing items:
+
+```javascript
+var params = {
+    TableName: 'index-factory-table-local'
+};
+dynamodb.scan(params, function(err, data) {
+    if (err) ppJson(err); // an error occurred
+    else ppJson(data); // successful response
+});
 ```
