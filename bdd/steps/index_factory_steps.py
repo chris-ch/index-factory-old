@@ -98,11 +98,6 @@ def step_impl(context, market, indices):
         assert item['indexCode'] in indices.split(',')
 
 
-@then('the {index_code} index value is {index_value}')
-def step_impl(context, index_code, index_value):
-    assert False
-
-
 @then(u'we have got {count} files for {year}-{month} for market {market_code}')
 def step_impl(context, count, year, month, market_code):
     args = ['s3api', 'list-objects-v2',
@@ -127,3 +122,22 @@ def step_impl(context, market_code):
 @then(u'we do nothing')
 def step_impl(context):
     pass
+
+
+@then("the {market_code} components as of {year}-{month}-{day} are")
+def step_impl(context, market_code, year, month, day):
+    url = endpoint_serverless('/indices/{}'.format(market_code))
+    response = requests.request('GET', url)
+    json_response = json.loads(response.text)
+    logging.info('received: %s', json_response)
+    yyyymmdd = year + month + day
+    assert context.table[0]['component'] == 'A' and context.table[0]['market value'] == json_response['market_values'][yyyymmdd]['A']
+    assert context.table[1]['component'] == 'B' and context.table[1]['market value'] == '32050000'
+    assert context.table[2]['component'] == 'C' and context.table[2]['market value'] == '2320000'
+    assert context.table[3]['component'] == 'D' and context.table[3]['market value'] == '47130000'
+    assert context.table[4]['component'] == 'E' and context.table[4]['market value'] == '177890000'
+
+
+@then('the {index_code} index value is {index_value}')
+def step_impl(context, index_code, index_value):
+    assert False
