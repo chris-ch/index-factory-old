@@ -40,18 +40,18 @@ def make_index_details_partition_key(index_code: str) -> str:
     return 'index#' + index_code
 
 
-def make_index_details_sort_key(index_code: str, markets: str) -> str:
+def make_index_details_sort_key(index_code: str) -> str:
     """
     Sort key for index details.
     """
-    return 'index-details#{}#{}'.format(index_code, '@' + '@'.join(markets) + '@')
+    return 'index-details#{}'.format(index_code)
 
 
-def make_market_details_partition_key(index_code: str) -> str:
+def make_market_details_partition_key(market_code: str) -> str:
     """
     Partition key for market details.
     """
-    return 'market#{}'.format(index_code)
+    return 'market#{}'.format(market_code)
 
 
 def make_market_details_nosh_sort_key(market_code: str) -> str:
@@ -68,23 +68,11 @@ def make_market_details_daily_prices_sort_key(market_code: str) -> str:
     return 'market-details#prices#{}'.format(market_code)
 
 
-def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
-    table = db.Table(INDEX_FACTORY_TABLE)
-    results = table.scan(
-        Select='ALL_ATTRIBUTES',
-        FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains(
-            '@{}@'.format(market_code))
-    )
-    data = results.get('Items')
-    while 'LastEvaluatedKey' in results:
-        results = table.scan(
-            Select='ALL_ATTRIBUTES',
-            FilterExpression=Key('sortKey').begins_with('index-details#') & Attr('sortKey').contains(
-                '@{}@'.format(market_code)),
-            ExclusiveStartKey=results['LastEvaluatedKey']
-        )
-        data += results.get('Items')
-    return data
+def make_market_details_indices_sort_key(index_code: str) -> str:
+    """
+    Sort key for market indices.
+    """
+    return 'market-details#index#{}'.format(index_code)
 
 
 def load_market_number_of_shares_dates(market_code: str):
@@ -121,28 +109,55 @@ def load_market_daily_prices_dates(market_code):
     return item
 
 
-
 def load_index(index_code):
     table = db.Table(INDEX_FACTORY_TABLE)
     resp = table.get_item(
         Key={
             'partitionKey': make_index_details_partition_key(index_code),
-            'sortKey': make_index_details_sort_key(index_code, '')
+            'sortKey': make_index_details_sort_key(index_code)
         }
     )
     item = resp.get('Item')
     return item
 
 
-def save_index(index_code, markets, index_data):
+def create_index(index_code, markets, index_data):
     table = db.Table(INDEX_FACTORY_TABLE)
+
     index_data['partitionKey'] = make_index_details_partition_key(index_code)
-    index_data['sortKey'] = make_index_details_sort_key(index_code, markets)
+    index_data['sortKey'] = make_index_details_sort_key(index_code)
+
     logging.info('saving index: %s', str(index_data))
     table.put_item(Item=index_data)
 
+    for market_code in markets:
+        market_partition_key = make_market_details_partition_key(market_code)
+        market_sort_key = make_market_details_indices_sort_key(index_code)
+        table.put_item(Item={'partitionKey': market_partition_key, 'sortKey': market_sort_key})
+
+
+def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
+    table = db.Table(INDEX_FACTORY_TABLE)
+    KEY_PREFIX_MARKET_INDEX = 'market-details#index#'
+    results = table.query(
+        Select='ALL_ATTRIBUTES',
+        KeyConditionExpression=Key('partitionKey').eq(make_market_details_partition_key(market_code)) & Key('sortKey').begins_with(KEY_PREFIX_MARKET_INDEX)
+    )
+    data = results.get('Items')
+    while 'LastEvaluatedKey' in results:
+        results = table.query(
+            Select='ALL_ATTRIBUTES',
+            KeyConditionExpression=Key('partitionKey').eq(make_market_details_partition_key(market_code)) & Key('sortKey').begins_with(KEY_PREFIX_MARKET_INDEX),
+            ExclusiveStartKey=results['LastEvaluatedKey']
+        )
+        data += results.get('Items')
+
+    indices = [{'indexCode': row['sortKey'][len(KEY_PREFIX_MARKET_INDEX):]} for row in data]
+    return [load_index(index['indexCode']) for index in indices]
+
 
 def scan_indices():
+    # TODO insert row with list of indices and use get_item() instead of scan()
     table = db.Table(INDEX_FACTORY_TABLE)
     results = table.scan(
         Select='ALL_ATTRIBUTES',

@@ -33,7 +33,7 @@ def step_impl(context):
     assert result.status_code == 200
 
 
-@when('we define a new index {index_name} ({index_code}) depending on markets {'
+@when('we define a new index "{index_name}" ({index_code}) depending on markets {'
       'markets}')
 def step_impl(context, index_name, index_code, markets):
     index_data = {
@@ -98,6 +98,15 @@ def step_impl(context, market, indices):
         assert item['indexCode'] in indices.split(',')
 
 
+@then('querying index {index_code} returns index with name "{index_name}"')
+def step_impl(context, index_code, index_name):
+    url = endpoint_serverless('/indices/{}'.format(index_code))
+    response = requests.request('GET', url)
+    json_response = json.loads(response.text)
+    logging.info('querying index %s response: %s', index_code, str(json_response))
+    assert json_response['name'] == index_name
+
+
 @then(u'we have got {count} files for {year}-{month} for market {market_code}')
 def step_impl(context, count, year, month, market_code):
     args = ['s3api', 'list-objects-v2',
@@ -124,13 +133,14 @@ def step_impl(context):
     pass
 
 
-@then("the {market_code} components as of {year}-{month}-{day} are")
-def step_impl(context, market_code, year, month, day):
-    url = endpoint_serverless('/indices/{}'.format(market_code))
+@then("the {index_code} components as of {year}-{month}-{day} are")
+def step_impl(context, index_code, year, month, day):
+    url = endpoint_serverless('/indices/{}'.format(index_code))
     response = requests.request('GET', url)
     json_response = json.loads(response.text)
     logging.info('received: %s', json_response)
     yyyymmdd = year + month + day
+    logging.info('found market values as of %s: %s', yyyymmdd, json_response['market_values'])
     assert context.table[0]['component'] == 'A' and context.table[0]['market value'] == json_response['market_values'][yyyymmdd]['A']
     assert context.table[1]['component'] == 'B' and context.table[1]['market value'] == '32050000'
     assert context.table[2]['component'] == 'C' and context.table[2]['market value'] == '2320000'

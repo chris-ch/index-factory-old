@@ -83,7 +83,7 @@ def create_index():
         return flask.jsonify({'error': 'Please provide indexCode, name and markets'}), 400
 
     index_data = {key: value for key, value in flask.request.json.items()}
-    model.save_index(index_code, markets, index_data)
+    model.create_index(index_code, markets, index_data)
     return flask.jsonify({
         'indexCode': index_code,
         'name': name
