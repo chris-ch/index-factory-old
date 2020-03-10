@@ -6,17 +6,10 @@ import requests
 
 
 def main():
-    index_data = {
-        'name': 'US Equity',
-        'indexCode': 'us-equity',
-        'startDate': '2020-01-01'
-    }
-    index_json = json.dumps(index_data)
-    logging.info('json: %s', index_json)
-    response = requests.post('http://127.0.0.1:3000/indices', json=index_json)
+    response = requests.get('http://127.0.0.1:3000/indices/na-equity')
     logging.info('response: %s', str(response.text))
     result = json.loads(response.text)
-    assert result['indexCode'] == 'us-equity'
+    assert result['indexCode'] == 'na-equity'
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 import io
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Any
 import logging
 import os
 import boto3
@@ -136,7 +136,7 @@ def create_index(index_code, markets, index_data):
         table.put_item(Item={'partitionKey': market_partition_key, 'sortKey': market_sort_key})
 
 
-def load_market_indices(market_code: str) -> Iterable[Dict[str, str]]:
+def load_market_indices(market_code: str) -> Iterable[Dict[str, Any]]:
     table = db.Table(INDEX_FACTORY_TABLE)
     KEY_PREFIX_MARKET_INDEX = 'market-details#index#'
     results = table.query(

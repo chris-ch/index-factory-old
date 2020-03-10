@@ -14,6 +14,9 @@ Feature: Index Factory calculation with a straightforward methodology
       | C         | 2320000      |
       | D         | 47130000     |
       | E         | 177890000    |
+      | X         | 177890000    |
+      | Y         | 177890000    |
+      | Z         | 177890000    |
      When we upload a CSV file with daily prices as of 2020-02-03 for market US
      Then the us-equity index value is 100.0
      When we upload a CSV file with daily prices as of 2020-02-28 for market US

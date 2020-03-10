@@ -111,11 +111,14 @@ def update_indices(market_code, year, month, day, filename, event_file_name):
         if 'market_values' not in index:
             index['market_values'] = dict()
 
-        date_yyyymmdd = '%d%02d%02d' % (year, month ,day)
+        date_yyyymmdd = '%d%02d%02d' % (year, month, day)
         if date_yyyymmdd not in index['market_values']:
-            index['market_values'][date_yyyymmdd] = market_values
-            table = db.Table(INDEX_FACTORY_TABLE)
-            table.put_item(Item=index)
+            index['market_values'][date_yyyymmdd] = dict()
+
+        index['market_values'][date_yyyymmdd][market_code] = market_values
+        
+        table = db.Table(INDEX_FACTORY_TABLE)
+        table.put_item(Item=index)
 
         pass
 

@@ -1,4 +1,7 @@
 import os
+from collections import defaultdict
+from decimal import Decimal
+from time import sleep
 from typing import List, Tuple
 
 import requests
@@ -118,6 +121,11 @@ def step_impl(context, count, year, month, market_code):
     assert status == 0
 
 
+@then(u'we do nothing for {pause} seconds')
+def step_impl(context, pause):
+    sleep(int(pause))
+
+
 @then(u'the market {market_code} has number of shares dates')
 def step_impl(context, market_code):
     assert context.table, "table<dates> is required"
@@ -136,13 +144,19 @@ def step_impl(context):
 @then("the {index_code} components as of {year}-{month}-{day} are")
 def step_impl(context, index_code, year, month, day):
     url = endpoint_serverless('/indices/{}'.format(index_code))
-    response = requests.request('GET', url)
+    response = requests.get(url)
     json_response = json.loads(response.text)
     logging.info('received: %s', json_response)
     yyyymmdd = year + month + day
     logging.info('found market values as of %s: %s', yyyymmdd, json_response['market_values'][yyyymmdd])
-    for count in range(5):
-        assert float(context.table[count]['market value']) == float(json_response['market_values'][yyyymmdd][context.table[count]['component']])
+    market_values = json_response['market_values'][yyyymmdd]
+    aggregated_market_values = defaultdict(Decimal)
+    for market in market_values:
+        for component in market_values[market]:
+            aggregated_market_values[component] += Decimal(market_values[market][component])
+
+    for row in context.table:
+        assert float(row['market value']) == float(aggregated_market_values[row['component']])
 
 
 @then('the {index_code} index value is {index_value}')
