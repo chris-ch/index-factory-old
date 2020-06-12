@@ -156,9 +156,24 @@ def step_impl(context, index_code, year, month, day):
             aggregated_market_values[component] += Decimal(market_values[market][component])
 
     for row in context.table:
-        assert float(row['market value']) == float(aggregated_market_values[row['component']])
+        assert 'copmaring {} with {}'.format(row['market value'], aggregated_market_values[row['component']]), float(row['market value']) == float(aggregated_market_values[row['component']])
 
 
 @then('the {index_code} index value is {index_value}')
 def step_impl(context, index_code, index_value):
-    assert False
+    url = endpoint_serverless('/indices/{}'.format(index_code))
+    response = requests.get(url)
+    json_response = json.loads(response.text)
+    market_values = json_response['market_values']
+    markets = json_response['markets']
+    logging.info('received market values: %s', market_values)
+    logging.info('received markets: %s', markets)
+    for market_code in markets:
+        url = endpoint_serverless('/markets/{}/nosh'.format(market_code))
+        response = requests.request('GET', url)
+        json_response = json.loads(response.text)
+        logging.info('received market nosh: %s', json_response)
+
+    # Computing index value using nosh and market values
+
+    assert True

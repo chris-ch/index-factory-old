@@ -22,21 +22,28 @@ serverless plugin install --name serverless-s3-local
 serverless plugin install --name serverless-dynamodb-local
 ```
 
-## Running BDD tests
+## Running unit tests
 
 ```bash
-behave --logging-level=INFO bdd
+PYTHONPATH=src python -m unittest tests/*.py
 ```
 
-### start
+### Starting SLS
+```bash
+SLS_DEBUG=DEBUG sls offline start  # make sure stage is declared in serverless.yml custom section
+```
 
-> SLS_DEBUG=DEBUG sls offline start  # make sure stage is declared in serverless.yml custom section
-
-### start separate processes
+### Starting SLS as a separate processes
 
 ```bash
 sls dynamodb start
 sls wsgi serve  
+```
+
+## Running BDD tests
+
+```bash
+behave --logging-level=INFO bdd
 ```
 
 ### Test requests
@@ -69,14 +76,8 @@ AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint htt
 AWS_ACCESS_KEY_ID=S3RVER AWS_SECRET_ACCESS_KEY=S3RVER aws --debug --endpoint http://127.0.0.1:8000 dynamodb put-item --table-name index-factory-table-local --item '{ "partitionKey": {"S": "1" }, "sortKey": { "S": "1989"}}'
 ```
 
-## Running unit tests
-
-```bash
-PYTHONPATH=src python -m unittest tests/*.py
-```
-
 ## DynamoDB console
-http://127.0.0.1:8000/shell/
+> http://127.0.0.1:8000/shell/
 
 Listing items:
 
